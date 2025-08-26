@@ -2,6 +2,7 @@ import { Router } from 'express';
 import componentsRouter from './components';
 import versionsRouter from './versions';
 import authRouter from './auth';
+import categoriesRouter from './categories';
 
 const router: Router = Router();
 
@@ -10,6 +11,7 @@ router.use('/auth', authRouter);
 
 // API Routes
 router.use('/components', componentsRouter);
+router.use('/categories', categoriesRouter);
 
 // Version routes are nested under components
 router.use('/components', versionsRouter);
@@ -21,6 +23,25 @@ router.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     endpoints: {
+      auth: {
+        register: 'POST /api/v1/auth/register',
+        login: 'POST /api/v1/auth/login',
+        refresh: 'POST /api/v1/auth/refresh',
+        logout: 'POST /api/v1/auth/logout',
+        profile: 'GET /api/v1/auth/profile',
+        changePassword: 'PUT /api/v1/auth/change-password',
+        deleteAccount: 'DELETE /api/v1/auth/delete-account',
+      },
+      categories: {
+        list: 'GET /api/v1/categories',
+        create: 'POST /api/v1/categories (admin)',
+        get: 'GET /api/v1/categories/:id',
+        getBySlug: 'GET /api/v1/categories/slug/:slug',
+        update: 'PUT /api/v1/categories/:id (admin)',
+        delete: 'DELETE /api/v1/categories/:id (admin)',
+        components: 'GET /api/v1/categories/:id/components',
+        stats: 'GET /api/v1/categories/stats (admin)',
+      },
       components: {
         list: 'GET /api/v1/components',
         create: 'POST /api/v1/components',
@@ -36,10 +57,10 @@ router.get('/', (req, res) => {
         },
       },
       future_endpoints: {
-        users: 'Coming soon',
-        categories: 'Coming soon',
-        authentication: 'Coming soon',
-        search: 'Available via query params on components endpoint',
+        users: 'User management (admin)',
+        favorites: 'Component favorites',
+        file_uploads: 'File upload support',
+        search: 'Advanced search (available via query params)',
       },
     },
     features: {
