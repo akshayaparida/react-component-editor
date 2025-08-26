@@ -4,16 +4,16 @@ services:
     container_name: react-component-editor-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: reacteditor
-      POSTGRES_PASSWORD: reacteditor123
-      POSTGRES_DB: react_component_editor
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U reacteditor -d react_component_editor"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
