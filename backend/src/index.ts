@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import apiRoutes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -49,19 +50,8 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// API routes placeholder
-app.get('/api/v1', (req, res) => {
-  res.json({
-    message: 'React Component Editor API v1.0.0',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/health',
-      components: '/api/v1/components',
-      users: '/api/v1/users',
-      categories: '/api/v1/categories',
-    },
-  });
-});
+// API routes
+app.use('/api/v1', apiRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
