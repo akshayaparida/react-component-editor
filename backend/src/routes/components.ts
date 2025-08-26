@@ -17,6 +17,7 @@ import {
   calculatePagination,
   ApiErrorException,
 } from '../middleware/validation';
+import { requireAuth, optionalAuth, requireOwnership } from '../middleware/auth';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -24,6 +25,7 @@ const prisma = new PrismaClient();
 // GET /api/v1/components - List components with filtering and pagination
 router.get(
   '/',
+  optionalAuth, // Optional auth to show user-specific data if logged in
   // TODO: Re-enable query validation after fixing TypeScript issues
   // validateQuery(ComponentQuerySchema),
   asyncHandler(async (req: any, res: any) => {
@@ -122,6 +124,7 @@ router.get(
 // POST /api/v1/components - Create a new component
 router.post(
   '/',
+  requireAuth, // Require authentication for creating components
   validateBody(CreateComponentSchema),
   asyncHandler(async (req: any, res: any) => {
     const {
@@ -144,8 +147,8 @@ router.post(
       changelog,
     } = req.body;
 
-    // TODO: Get authorId from authentication middleware
-    const authorId = 'temp-user-id'; // This will be replaced with actual user ID from auth
+    // Get authorId from authenticated user
+    const authorId = req.user.id;
 
     // Check if slug already exists
     const existingComponent = await prisma.component.findUnique({
@@ -241,6 +244,7 @@ router.post(
 // GET /api/v1/components/:id - Get a specific component
 router.get(
   '/:id',
+  optionalAuth, // Optional auth for view tracking
   asyncHandler(async (req: any, res: any) => {
     const { id } = req.params;
 
@@ -294,21 +298,15 @@ router.get(
 // PUT /api/v1/components/:id - Update a component
 router.put(
   '/:id',
+  requireAuth, // Require authentication
+  requireOwnership(), // Require component ownership
   validateBody(UpdateComponentSchema),
   asyncHandler(async (req: any, res: any) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // TODO: Check if user owns this component (from auth middleware)
-
-    // Check if component exists
-    const existingComponent = await prisma.component.findUnique({
-      where: { id },
-    });
-
-    if (!existingComponent) {
-      return sendErrorResponse(res, 'Not Found', 'Component not found', 404);
-    }
+    // Ownership check is handled by middleware
+    // Component existence is verified by ownership middleware
 
     // Validate category if provided
     if (updateData.categoryId !== undefined && updateData.categoryId !== null) {
@@ -360,18 +358,13 @@ router.put(
 // DELETE /api/v1/components/:id - Delete a component
 router.delete(
   '/:id',
+  requireAuth, // Require authentication
+  requireOwnership(), // Require component ownership
   asyncHandler(async (req: any, res: any) => {
     const { id } = req.params;
 
-    // TODO: Check if user owns this component (from auth middleware)
-
-    const component = await prisma.component.findUnique({
-      where: { id },
-    });
-
-    if (!component) {
-      return sendErrorResponse(res, 'Not Found', 'Component not found', 404);
-    }
+    // Ownership check is handled by middleware
+    // Component existence is verified by ownership middleware
 
     // Delete the component (cascade will handle versions and dependencies)
     await prisma.component.delete({

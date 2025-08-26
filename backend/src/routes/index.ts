@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import componentsRouter from './components';
 import versionsRouter from './versions';
+import authRouter from './auth';
 
 const router: Router = Router();
+
+// Authentication routes
+router.use('/auth', authRouter);
 
 // API Routes
 router.use('/components', componentsRouter);

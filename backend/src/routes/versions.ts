@@ -12,6 +12,7 @@ import {
   sendSuccessResponse,
   sendErrorResponse,
 } from '../middleware/validation';
+import { requireAuth, requireVersionOwnership } from '../middleware/auth';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -19,13 +20,15 @@ const prisma = new PrismaClient();
 // POST /api/v1/components/:componentId/versions - Create a new version
 router.post(
   '/:componentId/versions',
+  requireAuth,
+  requireVersionOwnership,
   validateBody(CreateVersionSchema),
   asyncHandler(async (req: any, res: any) => {
     const { componentId } = req.params;
     const versionData = req.body;
 
-    // TODO: Get authorId from authentication middleware
-    const authorId = 'temp-user-id';
+    // Get authorId from authenticated user
+    const authorId = req.user.id;
 
     // Check if component exists
     const component = await prisma.component.findUnique({
@@ -181,6 +184,8 @@ router.get(
 // PUT /api/v1/components/:componentId/versions/:version/publish - Mark version as stable
 router.put(
   '/:componentId/versions/:version/publish',
+  requireAuth,
+  requireVersionOwnership,
   asyncHandler(async (req: any, res: any) => {
     const { componentId, version } = req.params;
 
@@ -252,6 +257,8 @@ router.put(
 // DELETE /api/v1/components/:componentId/versions/:version - Delete a version
 router.delete(
   '/:componentId/versions/:version',
+  requireAuth,
+  requireVersionOwnership,
   asyncHandler(async (req: any, res: any) => {
     const { componentId, version } = req.params;
 

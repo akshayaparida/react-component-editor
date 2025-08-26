@@ -10,12 +10,43 @@ export const VersionSchema = z.string().regex(/^\d+\.\d+\.\d+$/, {
   message: 'Version must follow semantic versioning (e.g., 1.0.0)',
 });
 
-// User validation schemas
-export const CreateUserSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, {
+// Authentication validation schemas
+export const RegisterSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(30, 'Username must be less than 30 characters').regex(/^[a-zA-Z0-9_]+$/, {
     message: 'Username can only contain letters, numbers, and underscores',
   }),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password is too long'),
+  name: z.string().min(1).max(100).optional(),
+});
+
+export const LoginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const RefreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(128, 'Password is too long'),
+});
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email format'),
+});
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password is too long'),
+});
+
+// User validation schemas
+export const CreateUserSchema = RegisterSchema;
+
+export const UpdateUserProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   avatar: z.string().url().optional(),
 });
