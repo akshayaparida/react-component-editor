@@ -130,7 +130,29 @@ export const UserQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   search: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'updatedAt', 'username', 'name']).default('createdAt'),
+  role: z.enum(['user', 'admin']).optional(),
+  isActive: z.coerce.boolean().optional(),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'username', 'name', 'lastLoginAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export const UpdateUserRoleSchema = z.object({
+  role: z.enum(['user', 'admin'], { required_error: 'Role is required' }),
+});
+
+export const UpdateUserStatusSchema = z.object({
+  isActive: z.boolean({ required_error: 'Status is required' }),
+});
+
+// Favorites validation schemas
+export const FavoritesQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  search: z.string().optional(),
+  category: z.string().optional(),
+  framework: z.enum(['react', 'vue', 'angular', 'svelte']).optional(),
+  language: z.enum(['typescript', 'javascript']).optional(),
+  sortBy: z.enum(['createdAt', 'component', 'author']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

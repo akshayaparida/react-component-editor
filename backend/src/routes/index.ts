@@ -57,10 +57,11 @@ router.get('/', (req, res) => {
         },
       },
       future_endpoints: {
-        users: 'User management (admin)',
-        favorites: 'Component favorites',
+        users: 'User management system (planned)',
+        favorites: 'Component favorites system (planned)',
         file_uploads: 'File upload support',
         search: 'Advanced search (available via query params)',
+        analytics: 'User activity tracking',
       },
     },
     features: {
