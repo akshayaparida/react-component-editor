@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  components       Component[]
+  componentVersions ComponentVersion[]
+  favorites        ComponentFavorite[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String? // Hex color for UI
+  icon        String? // Icon name/class
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  components Component[]
+
+  @@map("categories")
+}
+
+model Component {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  isPublic    Boolean   @default(false)
+  isTemplate  Boolean   @default(false)
+  
+  // Metadata
+  tags        String[] // Array of tags for searching
+  framework   String   @default("react") // react, vue, angular, etc.
+  language    String   @default("typescript") // typescript, javascript
+  
+  // Statistics
+  viewCount     Int @default(0)
+  downloadCount Int @default(0)
+  likeCount     Int @default(0)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  authorId   String
+  categoryId String?
+
+  // Relations
+  author       User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category     Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  versions     ComponentVersion[]
+  favorites    ComponentFavorite[]
+  dependencies ComponentDependency[] @relation("ComponentDependencies")
+  dependents   ComponentDependency[] @relation("ComponentDependents")
+
+  @@map("components")
+}
+
+model ComponentVersion {
+  id          String   @id @default(cuid())
+  version     String   // semver: 1.0.0, 1.1.0, etc.
+  changelog   String?  // What changed in this version
+  isStable    Boolean  @default(false)
+  isLatest    Boolean  @default(false)
+  
+  // Component Code
+  jsxCode     String   // The React component JSX code
+  cssCode     String?  // Associated CSS/SCSS code
+  propsSchema Json?    // JSON schema for component props
+  
+  // Preview/Demo
+  previewCode String?  // Example usage code
+  previewData Json?    // Sample data for preview
+  
+  // Dependencies
+  dependencies Json?    // Package dependencies and versions
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  componentId String
+  authorId    String
+
+  // Relations
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([componentId, version])
+  @@map("component_versions")
+}
+
+model ComponentDependency {
+  id String @id @default(cuid())
+  
+  // Foreign Keys
+  componentId  String // Component that depends on another
+  dependencyId String // Component that is depended upon
+  
+  // Dependency details
+  version     String? // Which version is required
+  isOptional  Boolean @default(false)
+  description String? // Why this dependency exists
+  
+  createdAt DateTime @default(now())
+
+  // Relations
+  component  Component @relation("ComponentDependencies", fields: [componentId], references: [id], onDelete: Cascade)
+  dependency Component @relation("ComponentDependents", fields: [dependencyId], references: [id], onDelete: Cascade)
+
+  @@unique([componentId, dependencyId])
+  @@map("component_dependencies")
+}
+
+model ComponentFavorite {
+  id String @id @default(cuid())
+  
+  // Foreign Keys
+  userId      String
+  componentId String
+  
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, componentId])
+  @@map("component_favorites")
+}

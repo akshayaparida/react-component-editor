@@ -34,7 +34,7 @@ coverage/
 .nyc_output
 
 # Prisma
-prisma/migrations/
+# Note: We track migrations in version control for this project
 
 # IDE
 .vscode/
