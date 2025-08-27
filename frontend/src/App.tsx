@@ -4,6 +4,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { CreateComponentPage } from './pages/CreateComponentPage'
+import { ComponentDetailPage } from './pages/ComponentDetailPage'
 import { ProtectedRoute } from './contexts/AuthContext'
 
 function App() {
@@ -27,6 +28,14 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateComponentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/components/:id"
+        element={
+          <ProtectedRoute>
+            <ComponentDetailPage />
           </ProtectedRoute>
         }
       />
