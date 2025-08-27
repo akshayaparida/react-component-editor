@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { CreateComponentPage } from './pages/CreateComponentPage'
 import { ProtectedRoute } from './contexts/AuthContext'
 
 function App() {
@@ -18,6 +19,14 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/components/new"
+        element={
+          <ProtectedRoute>
+            <CreateComponentPage />
           </ProtectedRoute>
         }
       />
