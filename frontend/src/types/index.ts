@@ -76,6 +76,7 @@ export interface Component {
   viewCount: number;
   likeCount: number;
   downloadCount: number;
+  currentVersion: string;
   createdAt: string;
   updatedAt: string;
   authorId: string;
