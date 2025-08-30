@@ -1,16 +1,16 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Save, Eye, Code, Settings } from 'lucide-react'
-import { api } from '../lib/api'
-import { CreateComponentForm, Category } from '../types'
-import { ComponentEditor } from '../components/editor/ComponentEditor'
-import { ComponentPreview } from '../components/editor/ComponentPreview'
-import { ComponentMetadata } from '../components/editor/ComponentMetadata'
+import { api } from '@/lib/api'
+import { CreateComponentForm, Category } from '@/types'
+import { ComponentEditor } from '@/components/editor/ComponentEditor'
+import { ComponentPreview } from '@/components/editor/ComponentPreview'
+import { ComponentMetadata } from '@/components/editor/ComponentMetadata'
 
 const createComponentSchema = z.object({
   name: z.string().min(1, 'Component name is required').max(100, 'Name too long'),
@@ -30,6 +30,7 @@ const createComponentSchema = z.object({
 
 export function CreateComponentPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'metadata'>('editor')
 
   const form = useForm<CreateComponentForm>({
@@ -75,7 +76,7 @@ export default function MyComponent({ children, className = '' }: Props) {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await api.get('/categories')
-      return response.data.categories || []
+      return response.data.data || []
     },
   })
 
@@ -86,7 +87,10 @@ export default function MyComponent({ children, className = '' }: Props) {
     },
     onSuccess: (data) => {
       toast.success('Component created successfully!')
-      navigate(`/components/${data.component.id}`)
+      // Invalidate component-related queries to refresh dashboard
+      queryClient.invalidateQueries({ queryKey: ['components'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      navigate(`/components/${data.data.id}`)
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Failed to create component'

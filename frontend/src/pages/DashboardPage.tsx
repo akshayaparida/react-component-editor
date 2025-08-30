@@ -26,7 +26,7 @@ export function DashboardPage() {
       params.append('sort', sortBy)
       
       const response = await api.get(`/components?${params.toString()}`)
-      return response.data.components || []
+      return response.data.data || []
     },
   })
 
@@ -35,7 +35,7 @@ export function DashboardPage() {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await api.get('/categories')
-      return response.data.categories || []
+      return response.data.data || []
     },
   })
 
