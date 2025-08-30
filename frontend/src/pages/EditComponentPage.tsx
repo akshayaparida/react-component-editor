@@ -42,7 +42,7 @@ export function EditComponentPage() {
     queryFn: async () => {
       if (!id) throw new Error('Component ID is required')
       const response = await api.get(`/components/${id}`)
-      return response.data.component as Component
+      return response.data.data as Component
     },
     enabled: !!id,
   })
@@ -87,7 +87,7 @@ export function EditComponentPage() {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await api.get('/categories')
-      return response.data.categories || []
+      return response.data.data || []
     },
   })
 

@@ -8,13 +8,18 @@ import { Component } from '@/types'
 
 interface ComponentCardProps {
   component: Component
-  viewMode: 'grid' | 'list'
+  viewMode?: 'grid' | 'list'
+  view?: 'grid' | 'list' // For backward compatibility
+  showActions?: boolean
 }
 
-export function ComponentCard({ component, viewMode }: ComponentCardProps) {
+export function ComponentCard({ component, viewMode, view, showActions = true }: ComponentCardProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  
+  // Use viewMode or fallback to view prop for backward compatibility
+  const displayMode = viewMode || view || 'grid'
 
   const deleteComponentMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -52,7 +57,7 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
     }
   }
 
-  if (viewMode === 'list') {
+  if (displayMode === 'list') {
     return (
       <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
         <div className="flex items-center space-x-4 flex-1">
@@ -85,31 +90,33 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleView}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleEdit}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <Edit3 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleteComponentMutation.isPending}
-            className={`p-2 rounded-md transition-colors ${
-              showDeleteConfirm
-                ? 'text-red-600 bg-red-100 hover:bg-red-200'
-                : 'text-gray-400 hover:text-red-600 hover:bg-red-100'
-            }`}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {showActions && (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleView}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleEdit}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteComponentMutation.isPending}
+              className={`p-2 rounded-md transition-colors ${
+                showDeleteConfirm
+                  ? 'text-red-600 bg-red-100 hover:bg-red-200'
+                  : 'text-gray-400 hover:text-red-600 hover:bg-red-100'
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -159,34 +166,46 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
       )}
 
       <div className="flex items-center justify-between">
-        <div className="flex space-x-2">
-          <button
-            onClick={handleView}
-            className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            View
-          </button>
-          <button
-            onClick={handleEdit}
-            className="flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
-          >
-            <Edit3 className="w-3 h-3 mr-1" />
-            Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleteComponentMutation.isPending}
-            className={`flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              showDeleteConfirm
-                ? 'text-red-700 bg-red-100 hover:bg-red-200'
-                : 'text-red-600 bg-red-50 hover:bg-red-100'
-            }`}
-          >
-            <Trash2 className="w-3 h-3 mr-1" />
-            {showDeleteConfirm ? 'Confirm?' : 'Delete'}
-          </button>
-        </div>
+        {showActions ? (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleView}
+              className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              View
+            </button>
+            <button
+              onClick={handleEdit}
+              className="flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+            >
+              <Edit3 className="w-3 h-3 mr-1" />
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteComponentMutation.isPending}
+              className={`flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                showDeleteConfirm
+                  ? 'text-red-700 bg-red-100 hover:bg-red-200'
+                  : 'text-red-600 bg-red-50 hover:bg-red-100'
+              }`}
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              {showDeleteConfirm ? 'Confirm?' : 'Delete'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleView}
+              className="flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              View
+            </button>
+          </div>
+        )}
         <div className="text-xs text-gray-400">
           {component.isPublic ? 'Public' : 'Private'}
         </div>

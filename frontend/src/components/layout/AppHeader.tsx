@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { User, ChevronDown, Settings, LogOut, Home, Plus } from 'lucide-react'
+import { User, ChevronDown, Settings, LogOut, Home, Plus, Store } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -58,7 +58,14 @@ export function AppHeader({ title = 'Component Dashboard', showCreateButton = tr
               className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
             >
               <Home className="w-5 h-5 mr-2" />
-              <span className="font-medium">Home</span>
+              <span className="font-medium">Dashboard</span>
+            </Link>
+            <Link 
+              to="/marketplace" 
+              className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <Store className="w-5 h-5 mr-2" />
+              <span className="font-medium">Marketplace</span>
             </Link>
             <div className="border-l border-gray-300 pl-4">
               <h1 className="text-xl font-semibold text-gray-900">{title}</h1>

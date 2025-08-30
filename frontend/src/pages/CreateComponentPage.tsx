@@ -97,25 +97,25 @@ export function CreateComponentPage() {
     defaultValues: {
       name: '',
       description: '',
-      isPublic: true,
+      isPublic: false,
       isTemplate: false,
       tags: [],
       framework: 'react',
       language: 'typescript',
       version: '1.0.0',
-      jsxCode: `import React from 'react'
+      jsxCode: `import React from 'react';
 
-interface Props {
-  children: React.ReactNode
-  className?: string
+interface MyComponentProps {
+  children: React.ReactNode;
+  className?: string;
 }
 
-export default function MyComponent({ children, className = '' }: Props) {
+export default function MyComponent({ children, className = '' }: MyComponentProps) {
   return (
     <div className={\`my-component \${className}\`}>
       {children}
     </div>
-  )
+  );
 }`,
       cssCode: `.my-component {
   padding: 1rem;
@@ -158,8 +158,11 @@ export default function MyComponent({ children, className = '' }: Props) {
   })
 
   const handleSubmit = form.handleSubmit((data) => {
-    // Generate slug from name if not provided
-    const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    // Generate unique slug from name with timestamp
+    const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const timestamp = Date.now().toString(36) // Convert to base36 for shorter string
+    const slug = `${baseSlug}-${timestamp}`
+    
     createComponentMutation.mutate({ ...data, slug })
   })
 

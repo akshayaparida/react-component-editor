@@ -8,6 +8,7 @@ import { ComponentDetailPage } from '@/pages/ComponentDetailPage'
 import { EditComponentPage } from '@/pages/EditComponentPage'
 import { VisualBuilderPage } from '@/pages/VisualBuilderPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { MarketplacePage } from '@/pages/MarketplacePage'
 import { ProtectedRoute } from '@/contexts/AuthContext'
 
 function App() {
@@ -55,6 +56,14 @@ function App() {
         element={
           <ProtectedRoute>
             <EditComponentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketplace"
+        element={
+          <ProtectedRoute>
+            <MarketplacePage />
           </ProtectedRoute>
         }
       />

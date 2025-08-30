@@ -17,14 +17,25 @@ export function ComponentPreview({ jsxCode, cssCode, dependencies }: ComponentPr
     setPreviewError(null)
     
     // Simple validation - check for basic React component structure
-    if (!jsxCode.includes('export default')) {
-      setPreviewError('Component must have a default export')
+    // Accept both default exports and named exports
+    const hasExport = jsxCode.includes('export default') || 
+                     jsxCode.includes('export function') || 
+                     jsxCode.includes('export const') ||
+                     jsxCode.includes('function ')
+    
+    if (!hasExport) {
+      setPreviewError('Component must have an export or function declaration')
       return
     }
 
-    if (!jsxCode.includes('React')) {
-      setPreviewError('Component must import React')
-      return
+    // React import is not strictly required for modern React (JSX Transform)
+    // Only warn if there are React-specific patterns without import
+    const hasReactPatterns = jsxCode.includes('React.') || jsxCode.includes('useState') || jsxCode.includes('useEffect')
+    const hasReactImport = jsxCode.includes('React') || jsxCode.includes('import')
+    
+    if (hasReactPatterns && !hasReactImport) {
+      // This is just a warning, not an error
+      console.warn('Component uses React patterns but may be missing React import')
     }
 
     // Check for common syntax errors
@@ -61,7 +72,14 @@ export function ComponentPreview({ jsxCode, cssCode, dependencies }: ComponentPr
     }
 
     // Show a mock component based on the code content
-    const componentName = jsxCode.match(/function\s+(\w+)|const\s+(\w+)\s*=|export\s+default\s+function\s+(\w+)/)?.[1] || 'Component'
+    const componentName = (
+      jsxCode.match(/export\s+function\s+(\w+)/)?.[1] ||
+      jsxCode.match(/export\s+default\s+function\s+(\w+)/)?.[1] ||
+      jsxCode.match(/function\s+(\w+)/)?.[1] ||
+      jsxCode.match(/const\s+(\w+)\s*=/)?.[1] ||
+      jsxCode.match(/export\s+const\s+(\w+)/)?.[1] ||
+      'Component'
+    )
     
     // Create a more realistic mock based on common component patterns
     const createMockComponent = () => {

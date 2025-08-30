@@ -22,10 +22,10 @@ import { requireAuth, optionalAuth, requireOwnership } from '../middleware/auth'
 const router: Router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/v1/components - List components with filtering and pagination
+// GET /api/v1/components - List user's own components (Dashboard)
 router.get(
   '/',
-  optionalAuth, // Optional auth to show user-specific data if logged in
+  requireAuth, // Require authentication to see personal components
   // TODO: Re-enable query validation after fixing TypeScript issues
   // validateQuery(ComponentQuerySchema),
   asyncHandler(async (req: any, res: any) => {
@@ -47,14 +47,16 @@ router.get(
     const pageNum = parseInt(page as string) || 1;
     const limitNum = Math.min(parseInt(limit as string) || 20, 100); // Max 100 items per page
 
-    // Build where clause
-    const whereClause: any = {};
+    // Build where clause - Only show current user's components
+    const whereClause: any = {
+      authorId: req.user.id // Filter by current user
+    };
 
     if (search) {
       whereClause.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { tags: { hasSome: [search] } },
+        { name: { contains: search, mode: 'insensitive' }, authorId: req.user.id },
+        { description: { contains: search, mode: 'insensitive' }, authorId: req.user.id },
+        { tags: { hasSome: [search] }, authorId: req.user.id },
       ];
     }
 
@@ -130,6 +132,115 @@ router.get(
     const pagination = calculatePagination(pageNum, limitNum, total);
 
     sendSuccessResponse(res, components, 'Components retrieved successfully', 200, pagination);
+  })
+);
+
+// GET /api/v1/components/marketplace - List all public components (Marketplace)
+router.get(
+  '/marketplace',
+  optionalAuth, // Optional auth to show user-specific data if logged in
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      category,
+      tags,
+      framework,
+      language,
+      isTemplate,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    // Convert string values to appropriate types
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = Math.min(parseInt(limit as string) || 20, 100); // Max 100 items per page
+
+    // Build where clause - Only show public components
+    const whereClause: any = {
+      isPublic: true // Only show public components in marketplace
+    };
+
+    if (search) {
+      whereClause.OR = [
+        { name: { contains: search, mode: 'insensitive' }, isPublic: true },
+        { description: { contains: search, mode: 'insensitive' }, isPublic: true },
+        { tags: { hasSome: [search] }, isPublic: true },
+      ];
+    }
+
+    if (category) {
+      whereClause.category = { slug: category };
+    }
+
+    if (tags && tags.length > 0) {
+      whereClause.tags = { hasSome: tags };
+    }
+
+    if (framework) whereClause.framework = framework;
+    if (language) whereClause.language = language;
+    if (isTemplate !== undefined) whereClause.isTemplate = isTemplate === 'true';
+
+    // Calculate offset
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const total = await prisma.component.count({ where: whereClause });
+
+    // Build orderBy clause
+    const orderBy: any = {};
+    if (sortBy && ['createdAt', 'updatedAt', 'name', 'viewCount', 'downloadCount', 'likeCount'].includes(sortBy as string)) {
+      orderBy[sortBy as string] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
+    // Fetch components
+    const components = await prisma.component.findMany({
+      where: whereClause,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            icon: true,
+          },
+        },
+        versions: {
+          where: { isLatest: true },
+          select: {
+            id: true,
+            version: true,
+            isStable: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            versions: true,
+            favorites: true,
+          },
+        },
+      },
+      orderBy,
+      take: limitNum,
+      skip: offset,
+    });
+
+    const pagination = calculatePagination(pageNum, limitNum, total);
+
+    sendSuccessResponse(res, components, 'Marketplace components retrieved successfully', 200, pagination);
   })
 );
 
@@ -404,6 +515,259 @@ router.put(
     });
 
     sendSuccessResponse(res, updatedComponent, 'Component updated successfully');
+  })
+);
+
+// GET /api/v1/components/:id/fork-status - Check if user has already forked this component
+router.get(
+  '/:id/fork-status',
+  requireAuth, // Require authentication
+  asyncHandler(async (req: any, res: any) => {
+    const { id } = req.params;
+    
+    // Get the original component
+    const originalComponent = await prisma.component.findUnique({
+      where: { id },
+      select: { id: true, name: true, slug: true, authorId: true }
+    });
+
+    if (!originalComponent) {
+      return sendErrorResponse(res, 'Not Found', 'Component not found', 404);
+    }
+
+    // Check if user has already forked this component
+    const existingFork = await prisma.component.findFirst({
+      where: {
+        authorId: req.user.id,
+        AND: [
+          {
+            tags: {
+              has: 'forked'
+            }
+          },
+          {
+            OR: [
+              {
+                description: {
+                  contains: `Forked from "${originalComponent.name}"`
+                }
+              },
+              {
+                name: {
+                  contains: `${originalComponent.name} (Fork)`
+                }
+              },
+              {
+                slug: {
+                  contains: `${originalComponent.slug}-fork`
+                }
+              }
+            ]
+          }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true
+      }
+    });
+
+    const forkStatus = {
+      hasForked: !!existingFork,
+      isOwnComponent: originalComponent.authorId === req.user.id,
+      canFork: !existingFork && originalComponent.authorId !== req.user.id,
+      existingFork: existingFork || null
+    };
+
+    sendSuccessResponse(res, forkStatus, 'Fork status retrieved successfully');
+  })
+);
+
+// POST /api/v1/components/:id/fork - Fork/copy a component from marketplace
+router.post(
+  '/:id/fork',
+  requireAuth, // Require authentication
+  asyncHandler(async (req: any, res: any) => {
+    const { id } = req.params;
+    const { name, slug, description } = req.body;
+    
+    // Get the original component
+    const originalComponent = await prisma.component.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+          },
+        },
+        versions: {
+          where: { isLatest: true },
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!originalComponent) {
+      return sendErrorResponse(res, 'Not Found', 'Component not found', 404);
+    }
+
+    // Check if the component is public or if user owns it
+    if (!originalComponent.isPublic && originalComponent.authorId !== req.user.id) {
+      return sendErrorResponse(res, 'Forbidden', 'Cannot fork private component', 403);
+    }
+
+    // Check if user is trying to fork their own component
+    if (originalComponent.authorId === req.user.id) {
+      return sendErrorResponse(res, 'Bad Request', 'Cannot fork your own component', 400);
+    }
+
+    // Check if user has already forked this component
+    // We'll check for existing forks by looking for components with specific patterns
+    const existingFork = await prisma.component.findFirst({
+      where: {
+        authorId: req.user.id,
+        AND: [
+          {
+            tags: {
+              has: 'forked'
+            }
+          },
+          {
+            OR: [
+              {
+                description: {
+                  contains: `Forked from "${originalComponent.name}"`
+                }
+              },
+              {
+                name: {
+                  contains: `${originalComponent.name} (Fork)`
+                }
+              },
+              {
+                slug: {
+                  contains: `${originalComponent.slug}-fork`
+                }
+              }
+            ]
+          }
+        ]
+      }
+    });
+
+    if (existingFork) {
+      return sendErrorResponse(res, 'Already Forked', `You have already forked this component. Your fork: "${existingFork.name}"`, 409);
+    }
+
+    // Generate a unique slug if not provided
+    const newSlug = slug || `${originalComponent.slug}-fork-${Date.now()}`;
+    const newName = name || `${originalComponent.name} (Fork)`;
+
+    // Check if slug already exists
+    const existingComponent = await prisma.component.findUnique({
+      where: { slug: newSlug },
+    });
+
+    if (existingComponent) {
+      return sendErrorResponse(res, 'Duplicate Slug', 'A component with this slug already exists', 409);
+    }
+
+    const latestVersion = originalComponent.versions[0];
+    if (!latestVersion) {
+      return sendErrorResponse(res, 'No Version', 'Original component has no versions to fork', 400);
+    }
+
+    // Generate better description and changelog with author info
+    const authorInfo = originalComponent.author?.username || originalComponent.author?.name || 'Unknown Author';
+    const defaultDescription = description || `Forked from "${originalComponent.name}" by ${authorInfo}. ${originalComponent.description ? originalComponent.description : ''}`;
+    const changelogText = `Initial fork from "${originalComponent.name}" v${latestVersion.version} by ${authorInfo}`;
+
+    // Create forked component with initial version in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the forked component
+      const forkedComponent = await tx.component.create({
+        data: {
+          name: newName,
+          slug: newSlug,
+          description: defaultDescription.trim(),
+          isPublic: false, // Forked components start as private
+          isTemplate: originalComponent.isTemplate,
+          tags: [...originalComponent.tags, 'forked'], // Add 'forked' tag
+          framework: originalComponent.framework,
+          language: originalComponent.language,
+          authorId: req.user.id,
+          categoryId: originalComponent.categoryId,
+        },
+      });
+
+      // Create the initial version from the original
+      const forkedVersion = await tx.componentVersion.create({
+        data: {
+          componentId: forkedComponent.id,
+          authorId: req.user.id,
+          version: '1.0.0', // Start with version 1.0.0 for forks
+          changelog: changelogText,
+          isStable: false,
+          isLatest: true,
+          jsxCode: latestVersion.jsxCode,
+          cssCode: latestVersion.cssCode,
+          propsSchema: latestVersion.propsSchema,
+          previewCode: latestVersion.previewCode,
+          previewData: latestVersion.previewData,
+          dependencies: latestVersion.dependencies,
+        },
+      });
+
+      return { component: forkedComponent, version: forkedVersion };
+    });
+
+    // Increment download count for the original component
+    await prisma.component.update({
+      where: { id },
+      data: { downloadCount: { increment: 1 } },
+    });
+
+    // Fetch the complete forked component data to return
+    const forkedComponent = await prisma.component.findUnique({
+      where: { id: result.component.id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        category: true,
+        versions: {
+          where: { isLatest: true },
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    sendSuccessResponse(res, forkedComponent, 'Component forked successfully', 201);
   })
 );
 
