@@ -54,7 +54,7 @@ function App() {
         path="/components/:id/edit"
         element={
           <ProtectedRoute>
-            <CreateComponentPage />
+            <EditComponentPage />
           </ProtectedRoute>
         }
       />
