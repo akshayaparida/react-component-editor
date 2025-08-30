@@ -1,12 +1,14 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { LoginPage } from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
-import { DashboardPage } from './pages/DashboardPage'
-import { CreateComponentPage } from './pages/CreateComponentPage'
-import { ComponentDetailPage } from './pages/ComponentDetailPage'
-import { EditComponentPage } from './pages/EditComponentPage'
-import { ProtectedRoute } from './contexts/AuthContext'
+import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { CreateComponentPage } from '@/pages/CreateComponentPage'
+import { ComponentDetailPage } from '@/pages/ComponentDetailPage'
+import { EditComponentPage } from '@/pages/EditComponentPage'
+import { VisualBuilderPage } from '@/pages/VisualBuilderPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { ProtectedRoute } from '@/contexts/AuthContext'
 
 function App() {
   return (
@@ -33,6 +35,14 @@ function App() {
         }
       />
       <Route
+        path="/visual-builder"
+        element={
+          <ProtectedRoute>
+            <VisualBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/components/:id"
         element={
           <ProtectedRoute>
@@ -44,7 +54,15 @@ function App() {
         path="/components/:id/edit"
         element={
           <ProtectedRoute>
-            <EditComponentPage />
+            <CreateComponentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />

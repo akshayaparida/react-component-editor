@@ -30,8 +30,8 @@ router.get(
   // validateQuery(ComponentQuerySchema),
   asyncHandler(async (req: any, res: any) => {
     const {
-      page,
-      limit,
+      page = 1,
+      limit = 20,
       search,
       category,
       tags,
@@ -39,9 +39,13 @@ router.get(
       language,
       isPublic,
       isTemplate,
-      sortBy,
-      sortOrder,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = req.query;
+
+    // Convert string values to appropriate types
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = Math.min(parseInt(limit as string) || 20, 100); // Max 100 items per page
 
     // Build where clause
     const whereClause: any = {};
@@ -64,14 +68,22 @@ router.get(
 
     if (framework) whereClause.framework = framework;
     if (language) whereClause.language = language;
-    if (isPublic !== undefined) whereClause.isPublic = isPublic;
-    if (isTemplate !== undefined) whereClause.isTemplate = isTemplate;
+    if (isPublic !== undefined) whereClause.isPublic = isPublic === 'true';
+    if (isTemplate !== undefined) whereClause.isTemplate = isTemplate === 'true';
 
     // Calculate offset
-    const offset = (page - 1) * limit;
+    const offset = (pageNum - 1) * limitNum;
 
     // Get total count for pagination
     const total = await prisma.component.count({ where: whereClause });
+
+    // Build orderBy clause
+    const orderBy: any = {};
+    if (sortBy && ['createdAt', 'updatedAt', 'name', 'viewCount', 'downloadCount', 'likeCount'].includes(sortBy as string)) {
+      orderBy[sortBy as string] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
 
     // Fetch components
     const components = await prisma.component.findMany({
@@ -110,14 +122,54 @@ router.get(
           },
         },
       },
-      orderBy: { [sortBy]: sortOrder },
-      take: limit,
+      orderBy,
+      take: limitNum,
       skip: offset,
     });
 
-    const pagination = calculatePagination(page, limit, total);
+    const pagination = calculatePagination(pageNum, limitNum, total);
 
     sendSuccessResponse(res, components, 'Components retrieved successfully', 200, pagination);
+  })
+);
+
+// GET /api/v1/components/stats - Get dashboard statistics
+router.get(
+  '/stats',
+  optionalAuth,
+  asyncHandler(async (req: any, res: any) => {
+    const userId = req.user?.id;
+
+    // Get total components count
+    const totalComponents = await prisma.component.count({
+      where: { isPublic: true }
+    });
+
+    // Get user's components count if authenticated
+    const myComponents = userId ? await prisma.component.count({
+      where: { authorId: userId }
+    }) : 0;
+
+    // Get recent updates (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentUpdates = await prisma.component.count({
+      where: {
+        updatedAt: { gte: sevenDaysAgo },
+        isPublic: true
+      }
+    });
+
+    // Get total categories
+    const totalCategories = await prisma.category.count();
+
+    const stats = {
+      total: totalComponents,
+      myComponents,
+      recentUpdates,
+      categories: totalCategories
+    };
+
+    sendSuccessResponse(res, stats, 'Statistics retrieved successfully');
   })
 );
 
