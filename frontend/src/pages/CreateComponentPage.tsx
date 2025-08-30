@@ -14,6 +14,63 @@ import { ComponentMetadata } from '@/components/editor/ComponentMetadata'
 import { VisualComponentBuilder } from '@/components/visual-editor/VisualComponentBuilder'
 import { ComponentState } from '@/components/visual-editor/types'
 
+// Helper functions for converting visual state to code
+function generateJSXFromVisualState(componentState: ComponentState): string {
+  const { name, elements } = componentState
+  
+  const generateElementJSX = (element: any): string => {
+    const { type, content, styles } = element
+    const styleString = Object.entries(styles || {})
+      .map(([key, value]) => `${key}: '${value}'`)
+      .join(', ')
+    
+    switch (type) {
+      case 'button':
+        return `<button style={{${styleString}}}>${content}</button>`
+      case 'text':
+      case 'div':
+      default:
+        return `<div style={{${styleString}}}>${content}</div>`
+    }
+  }
+  
+  const elementsJSX = elements.map(generateElementJSX).join('\n    ')
+  
+  return `import React from 'react'
+
+interface Props {
+  className?: string
+}
+
+export default function ${name || 'MyComponent'}({ className = '' }: Props) {
+  return (
+    <div className={\`component-container \${className}\`}>
+      ${elementsJSX}
+    </div>
+  )
+}`
+}
+
+function generateCSSFromVisualState(componentState: ComponentState): string {
+  const { globalStyles } = componentState
+  
+  let css = `.component-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}`
+  
+  if (globalStyles) {
+    css += `\n\n.component-container * {
+  font-family: ${globalStyles.fontFamily || 'Inter, sans-serif'};
+  font-size: ${globalStyles.fontSize || '16px'};
+  line-height: ${globalStyles.lineHeight || '1.5'};
+}`
+  }
+  
+  return css
+}
+
 const createComponentSchema = z.object({
   name: z.string().min(1, 'Component name is required').max(100, 'Name too long'),
   description: z.string().max(500, 'Description too long').optional(),
@@ -230,12 +287,26 @@ export default function MyComponent({ children, className = '' }: Props) {
               <div className="h-screen">
                 <VisualComponentBuilder
                   onSave={(componentState) => {
-                    // Convert visual component to JSX code and update form
-                    // This would need proper implementation to convert visual state to code
-                    toast.success('Component designed visually!')
-                    // Auto-fill the component name if not set
-                    if (!form.watch('name')) {
-                      form.setValue('name', componentState.name || 'My Component')
+                    try {
+                      // Generate JSX code from visual component state
+                      const generatedJSX = generateJSXFromVisualState(componentState)
+                      const generatedCSS = generateCSSFromVisualState(componentState)
+                      
+                      // Update form with generated code
+                      form.setValue('jsxCode', generatedJSX)
+                      if (generatedCSS) {
+                        form.setValue('cssCode', generatedCSS)
+                      }
+                      
+                      // Auto-fill component name if not set
+                      if (!form.watch('name') && componentState.name) {
+                        form.setValue('name', componentState.name)
+                      }
+                      
+                      toast.success('Visual design converted to code successfully!')
+                    } catch (error) {
+                      toast.error('Failed to convert visual design to code')
+                      console.error('Visual to code conversion error:', error)
                     }
                   }}
                 />

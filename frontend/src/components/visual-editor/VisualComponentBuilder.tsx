@@ -112,7 +112,7 @@ export function VisualComponentBuilder({
   // Handle save
   const handleSave = useCallback(() => {
     onSave?.(component)
-    toast.success('Component saved successfully!')
+    // Note: Toast notification will be shown by parent component
   }, [component, onSave])
 
   // Generate and copy code

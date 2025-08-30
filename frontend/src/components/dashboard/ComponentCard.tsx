@@ -1,6 +1,9 @@
-import React from 'react'
-import { Calendar, User, Eye, Edit3, Star, Code } from 'lucide-react'
+import React, { useState } from 'react'
+import { Calendar, User, Eye, Edit3, Star, Code, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import { api } from '@/lib/api'
 import { Component } from '@/types'
 
 interface ComponentCardProps {
@@ -10,6 +13,25 @@ interface ComponentCardProps {
 
 export function ComponentCard({ component, viewMode }: ComponentCardProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const deleteComponentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/components/${id}`)
+      return response.data
+    },
+    onSuccess: () => {
+      toast.success('Component deleted successfully!')
+      // Invalidate queries to refresh the dashboard
+      queryClient.invalidateQueries({ queryKey: ['components'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to delete component'
+      toast.error(message)
+    },
+  })
 
   const handleView = () => {
     navigate(`/components/${component.id}`)
@@ -17,6 +39,17 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
 
   const handleEdit = () => {
     navigate(`/components/${component.id}/edit`)
+  }
+
+  const handleDelete = () => {
+    if (showDeleteConfirm) {
+      deleteComponentMutation.mutate(component.id)
+      setShowDeleteConfirm(false)
+    } else {
+      setShowDeleteConfirm(true)
+      // Reset confirmation after 3 seconds
+      setTimeout(() => setShowDeleteConfirm(false), 3000)
+    }
   }
 
   if (viewMode === 'list') {
@@ -64,6 +97,17 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
           >
             <Edit3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteComponentMutation.isPending}
+            className={`p-2 rounded-md transition-colors ${
+              showDeleteConfirm
+                ? 'text-red-600 bg-red-100 hover:bg-red-200'
+                : 'text-gray-400 hover:text-red-600 hover:bg-red-100'
+            }`}
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -129,6 +173,18 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
           >
             <Edit3 className="w-3 h-3 mr-1" />
             Edit
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteComponentMutation.isPending}
+            className={`flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              showDeleteConfirm
+                ? 'text-red-700 bg-red-100 hover:bg-red-200'
+                : 'text-red-600 bg-red-50 hover:bg-red-100'
+            }`}
+          >
+            <Trash2 className="w-3 h-3 mr-1" />
+            {showDeleteConfirm ? 'Confirm?' : 'Delete'}
           </button>
         </div>
         <div className="text-xs text-gray-400">
