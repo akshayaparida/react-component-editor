@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import { X, Plus, Tag, Info, Settings, Globe, Lock } from 'lucide-react'
-import { CreateComponentForm, Category } from '../../types'
+import { CreateComponentForm, Category } from '@/types'
 
 interface ComponentMetadataProps {
   form: UseFormReturn<CreateComponentForm>

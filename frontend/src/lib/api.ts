@@ -65,8 +65,8 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        const { token } = response.data.data;
-        tokenManager.setToken(token);
+        const { accessToken } = response.data.data;
+        tokenManager.setToken(accessToken);
 
         return api(originalRequest);
       } catch (refreshError) {
@@ -104,7 +104,7 @@ export const authApi = {
   },
 
   getProfile: async () => {
-    const response = await api.get<ApiResponse<any>>('/auth/profile');
+    const response = await api.get<ApiResponse<any>>('/auth/me');
     return response.data.data;
   },
 

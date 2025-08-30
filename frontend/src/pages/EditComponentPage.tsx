@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Save, Eye, Code, Settings, AlertTriangle } from 'lucide-react'
-import { api } from '../lib/api'
-import { UpdateComponentForm, Category, Component } from '../types'
+import { api } from '@/lib/api'
+import { UpdateComponentForm, Category, Component } from '@/types'
 import { ComponentEditor } from '../components/editor/ComponentEditor'
 import { ComponentPreview } from '../components/editor/ComponentPreview'
 import { EditComponentMetadata } from '../components/editor/EditComponentMetadata'
@@ -203,7 +203,7 @@ export function EditComponentPage() {
                   Edit: {component.name}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Current version: v{component.currentVersion} → New {form.watch('versionType')} version
+                  Current version: v{component.versions?.[0]?.version || '1.0.0'} → New {form.watch('versionType')} version
                 </p>
               </div>
             </div>

@@ -1,0 +1,255 @@
+import React, { useState, useCallback, useRef } from 'react'
+import { Eye, Code, Copy, Download, Save, Settings } from 'lucide-react'
+import { VisualCanvas } from './VisualCanvas'
+import { CodeGenerator, ComponentCodeGenerator } from './CodeGenerator'
+import { PropertyPanel } from './PropertyPanel'
+import { ExportPanel } from './ExportPanel'
+import { ElementToolbar } from './ElementToolbar'
+import { ComponentElement, ComponentState } from './types'
+import toast from 'react-hot-toast'
+
+interface VisualComponentBuilderProps {
+  initialComponent?: ComponentState
+  onSave?: (component: ComponentState) => void
+}
+
+const defaultComponent: ComponentState = {
+  id: 'root',
+  name: 'MyComponent',
+  elements: [
+    {
+      id: 'element-1',
+      type: 'div',
+      content: 'Click to edit text',
+      styles: {
+        padding: '16px',
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        fontSize: '16px',
+        color: '#374151',
+        fontFamily: 'Inter, sans-serif'
+      },
+      children: []
+    }
+  ],
+  globalStyles: {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.5'
+  }
+}
+
+export function VisualComponentBuilder({ 
+  initialComponent, 
+  onSave 
+}: VisualComponentBuilderProps) {
+  const [component, setComponent] = useState<ComponentState>(
+    initialComponent || defaultComponent
+  )
+  const [selectedElement, setSelectedElement] = useState<string | null>(null)
+  const [showExportPanel, setShowExportPanel] = useState(false)
+  const [activePanel, setActivePanel] = useState<'properties' | 'code' | 'export'>('properties')
+
+  // Update element in component state
+  const updateElement = useCallback((elementId: string, updates: Partial<ComponentElement>) => {
+    setComponent(prev => ({
+      ...prev,
+      elements: prev.elements.map(el =>
+        el.id === elementId ? { ...el, ...updates } : el
+      )
+    }))
+  }, [])
+
+  // Update element styles
+  const updateElementStyles = useCallback((elementId: string, styles: React.CSSProperties) => {
+    updateElement(elementId, { styles: { ...component.elements.find(el => el.id === elementId)?.styles, ...styles } })
+  }, [component.elements, updateElement])
+
+  // Update element content
+  const updateElementContent = useCallback((elementId: string, content: string) => {
+    updateElement(elementId, { content })
+  }, [updateElement])
+
+  // Add new element
+  const addElement = useCallback((type: ComponentElement['type']) => {
+    const newElement: ComponentElement = {
+      id: `element-${Date.now()}`,
+      type,
+      content: type === 'text' ? 'New text element' : type === 'button' ? 'Button' : 'New element',
+      styles: {
+        padding: '8px 16px',
+        margin: '8px 0',
+        backgroundColor: type === 'button' ? '#3b82f6' : '#ffffff',
+        color: type === 'button' ? '#ffffff' : '#374151',
+        border: '1px solid #e5e7eb',
+        borderRadius: '6px',
+        fontSize: '14px'
+      },
+      children: []
+    }
+
+    setComponent(prev => ({
+      ...prev,
+      elements: [...prev.elements, newElement]
+    }))
+
+    setSelectedElement(newElement.id)
+  }, [])
+
+  // Remove element
+  const removeElement = useCallback((elementId: string) => {
+    setComponent(prev => ({
+      ...prev,
+      elements: prev.elements.filter(el => el.id !== elementId)
+    }))
+    
+    if (selectedElement === elementId) {
+      setSelectedElement(null)
+    }
+  }, [selectedElement])
+
+  // Handle save
+  const handleSave = useCallback(() => {
+    onSave?.(component)
+    toast.success('Component saved successfully!')
+  }, [component, onSave])
+
+  // Generate and copy code
+  const handleCopyCode = useCallback(async () => {
+    try {
+      const codeGenerator = new ComponentCodeGenerator(component)
+      const code = codeGenerator.generateReactComponent()
+      await navigator.clipboard.writeText(code)
+      toast.success('Component code copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy code')
+    }
+  }, [component])
+
+  return (
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold text-gray-900">Visual Component Builder</h1>
+          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+            No-Code
+          </span>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleCopyCode}
+            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            Copy Code
+          </button>
+          
+          <button
+            onClick={() => setShowExportPanel(true)}
+            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </button>
+          
+          {onSave && (
+            <button
+              onClick={handleSave}
+              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Component
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Side: Visual Builder */}
+        <div className="flex-1 flex flex-col">
+          {/* Element Toolbar */}
+          <ElementToolbar 
+            onAddElement={addElement}
+            selectedElement={selectedElement}
+            onRemoveElement={removeElement}
+          />
+          
+          {/* Visual Canvas */}
+          <div className="flex-1 p-6 overflow-auto">
+            <VisualCanvas
+              component={component}
+              selectedElement={selectedElement}
+              onSelectElement={setSelectedElement}
+              onUpdateElement={updateElement}
+              onUpdateContent={updateElementContent}
+            />
+          </div>
+        </div>
+
+        {/* Right Side: Properties & Code */}
+        <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+          {/* Panel Tabs */}
+          <div className="border-b border-gray-200 p-2">
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setActivePanel('properties')}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activePanel === 'properties'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Properties
+              </button>
+              
+              <button
+                onClick={() => setActivePanel('code')}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activePanel === 'code'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Code className="w-4 h-4 mr-2" />
+                Generated Code
+              </button>
+            </div>
+          </div>
+
+          {/* Panel Content */}
+          <div className="flex-1 overflow-auto">
+            {activePanel === 'properties' && (
+              <PropertyPanel
+                selectedElement={selectedElement}
+                component={component}
+                onUpdateElementStyles={updateElementStyles}
+                onUpdateElementContent={updateElementContent}
+                onUpdateComponent={setComponent}
+              />
+            )}
+            
+            {activePanel === 'code' && (
+              <CodeGenerator
+                component={component}
+                onCopyCode={handleCopyCode}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Export Panel Modal */}
+      {showExportPanel && (
+        <ExportPanel
+          component={component}
+          onClose={() => setShowExportPanel(false)}
+        />
+      )}
+    </div>
+  )
+}

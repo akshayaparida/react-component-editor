@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import { X, Plus, Tag, Info, Settings, Globe, Lock, GitBranch, Clock } from 'lucide-react'
-import { UpdateComponentForm, Category, Component } from '../../types'
+import { UpdateComponentForm, Category, Component } from '@/types'
 
 interface EditComponentMetadataProps {
   form: UseFormReturn<any>
@@ -27,7 +27,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
   }
 
   const removeTag = (tagToRemove: string) => {
-    setValue('tags', tags.filter(tag => tag !== tagToRemove))
+    setValue('tags', tags.filter((tag: string) => tag !== tagToRemove))
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -53,7 +53,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
     }
   }
 
-  const nextVersion = getNextVersion(component.currentVersion, versionType)
+  const nextVersion = getNextVersion(component.versions?.[0]?.version || '1.0.0', versionType)
 
   return (
     <div className="space-y-8">
@@ -70,7 +70,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
               Current Version
             </label>
             <div className="bg-white px-3 py-2 border border-blue-300 rounded-md text-sm text-gray-900">
-              v{component.currentVersion}
+              v{component.versions?.[0]?.version || '1.0.0'}
             </div>
           </div>
           
@@ -168,7 +168,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
               Describe the changes made in this version for other developers
             </p>
             {errors.changelog && (
-              <p className="mt-1 text-xs text-red-600">{errors.changelog.message}</p>
+              <p className="mt-1 text-xs text-red-600">{String(errors.changelog?.message || '')}</p>
             )}
           </div>
         </div>
@@ -194,7 +194,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
               placeholder="Enter component name"
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-1 text-xs text-red-600">{String(errors.name?.message || '')}</p>
             )}
           </div>
 
@@ -228,7 +228,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
               placeholder="Describe what this component does..."
             />
             {errors.description && (
-              <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>
+              <p className="mt-1 text-xs text-red-600">{String(errors.description?.message || '')}</p>
             )}
           </div>
         </div>
@@ -271,7 +271,7 @@ export function EditComponentMetadata({ form, categories, component, isLoading }
         
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2 min-h-[2rem]">
-            {tags.map((tag) => (
+            {tags.map((tag: string) => (
               <span
                 key={tag}
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"

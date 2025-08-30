@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: authApi.login,
     onSuccess: (data) => {
-      tokenManager.setToken(data.token);
+      tokenManager.setToken(data.accessToken);
       tokenManager.setRefreshToken(data.refreshToken);
       queryClient.setQueryData(['auth', 'profile'], data.user);
       toast.success('Welcome back!');
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: authApi.register,
     onSuccess: (data) => {
-      tokenManager.setToken(data.token);
+      tokenManager.setToken(data.accessToken);
       tokenManager.setRefreshToken(data.refreshToken);
       queryClient.setQueryData(['auth', 'profile'], data.user);
       toast.success('Account created successfully!');
@@ -129,13 +129,11 @@ export function useAuth() {
 
 // Protected route wrapper component
 export function ProtectedRoute({ 
-  children, 
-  requiredRole 
+  children 
 }: { 
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'user';
 }) {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -149,17 +147,6 @@ export function ProtectedRoute({
   if (!isAuthenticated) {
     // Redirect to login with current location
     return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (requiredRole && user?.role !== requiredRole) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;

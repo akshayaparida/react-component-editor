@@ -1,6 +1,6 @@
 import React from 'react'
 import { ChevronDown } from 'lucide-react'
-import { Category } from '../../types'
+import { Category } from '@/types'
 
 interface CategoryFilterProps {
   categories: Category[]

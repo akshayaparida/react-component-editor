@@ -23,7 +23,13 @@ export interface AuthUser {
   email: string;
   name?: string;
   avatar?: string;
-  role: 'user' | 'admin';
+  createdAt: string;
+  updatedAt?: string;
+  _count?: {
+    components: number;
+    componentVersions: number;
+    favorites: number;
+  };
 }
 
 export interface LoginCredentials {
@@ -40,7 +46,7 @@ export interface RegisterCredentials {
 
 export interface AuthResponse {
   user: AuthUser;
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -76,7 +82,6 @@ export interface Component {
   viewCount: number;
   likeCount: number;
   downloadCount: number;
-  currentVersion: string;
   createdAt: string;
   updatedAt: string;
   authorId: string;

@@ -18,8 +18,8 @@ import {
   GitBranch
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { api } from '../lib/api'
-import { Component } from '../types'
+import { api } from '@/lib/api'
+import { Component } from '@/types'
 import { ComponentEditor } from '../components/editor/ComponentEditor'
 import { ComponentPreview } from '../components/editor/ComponentPreview'
 
@@ -35,7 +35,7 @@ export function ComponentDetailPage() {
     queryFn: async () => {
       if (!id) throw new Error('Component ID is required')
       const response = await api.get(`/components/${id}`)
-      return response.data.component as Component
+      return response.data.data as Component
     },
     enabled: !!id,
   })
@@ -143,7 +143,7 @@ export function ComponentDetailPage() {
                 <h1 className="text-xl font-semibold text-gray-900">
                   {component.name}
                 </h1>
-                <p className="text-sm text-gray-500">v{component.currentVersion}</p>
+                <p className="text-sm text-gray-500">v{latestVersion?.version || '1.0.0'}</p>
               </div>
             </div>
             

@@ -63,21 +63,132 @@ export function ComponentPreview({ jsxCode, cssCode, dependencies }: ComponentPr
     // Show a mock component based on the code content
     const componentName = jsxCode.match(/function\s+(\w+)|const\s+(\w+)\s*=|export\s+default\s+function\s+(\w+)/)?.[1] || 'Component'
     
+    // Create a more realistic mock based on common component patterns
+    const createMockComponent = () => {
+      const isButton = jsxCode.toLowerCase().includes('button')
+      const isCard = jsxCode.toLowerCase().includes('card')
+      const isInput = jsxCode.toLowerCase().includes('input')
+      const isModal = jsxCode.toLowerCase().includes('modal')
+      
+      if (isButton) {
+        return (
+          <div className="flex space-x-4">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Primary Button
+            </button>
+            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+              Secondary Button
+            </button>
+          </div>
+        )
+      }
+      
+      if (isCard) {
+        return (
+          <div className="max-w-sm bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-2">Sample Card</h3>
+              <p className="text-gray-600 mb-4">This is a preview of what your card component might look like when rendered.</p>
+              <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded">Action</button>
+            </div>
+          </div>
+        )
+      }
+      
+      if (isInput) {
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sample Input</label>
+              <input 
+                type="text" 
+                placeholder="Enter text here..."
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+        )
+      }
+      
+      if (isModal) {
+        return (
+          <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Sample Modal</h3>
+              <button className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <p className="text-gray-600 mb-4">This is a preview of your modal component.</p>
+            <div className="flex justify-end space-x-2">
+              <button className="px-3 py-1 text-gray-600 border border-gray-300 rounded">Cancel</button>
+              <button className="px-3 py-1 bg-blue-600 text-white rounded">Confirm</button>
+            </div>
+          </div>
+        )
+      }
+      
+      // Default generic component
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2">{componentName}</h3>
+          <p className="text-gray-600 mb-4">This is a mock preview of your React component.</p>
+          <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <span>⚛️ React</span>
+            <span>📝 {jsxCode.split('\n').length} lines</span>
+            <span>🎨 {cssCode ? 'With CSS' : 'No CSS'}</span>
+          </div>
+        </div>
+      )
+    }
+    
     return (
       <div className="p-8 bg-gray-50 min-h-full">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">{componentName} Preview</h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-blue-700">
-                This is a mock preview. In a production environment, you would see the actual rendered component here.
-              </p>
+        <div className="max-w-2xl mx-auto">
+          {/* Info Banner */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <Eye className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800">Preview Mode</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  This is a mock preview for security reasons. In production, this would be rendered in a secure sandbox.
+                </p>
+              </div>
             </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>Component name: {componentName}</p>
-              <p>Code lines: {jsxCode.split('\n').length}</p>
-              <p>CSS rules: {cssCode.split('{').length - 1}</p>
-              <p>Dependencies: {Object.keys(dependencies).length}</p>
+          </div>
+          
+          {/* Mock Component */}
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{componentName} Preview</h3>
+            </div>
+            
+            {/* Rendered Mock Component */}
+            <div className="flex justify-center">
+              {createMockComponent()}
+            </div>
+            
+            {/* Component Info */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-medium text-gray-900">{jsxCode.split('\n').length}</div>
+                  <div className="text-gray-500">Lines of Code</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-gray-900">{cssCode ? cssCode.split('{').length - 1 : 0}</div>
+                  <div className="text-gray-500">CSS Rules</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-gray-900">{Object.keys(dependencies).length}</div>
+                  <div className="text-gray-500">Dependencies</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-gray-900">React</div>
+                  <div className="text-gray-500">Framework</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

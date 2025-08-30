@@ -1,7 +1,7 @@
 import React from 'react'
 import { Calendar, User, Eye, Edit3, Star, Code } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Component } from '../../types'
+import { Component } from '@/types'
 
 interface ComponentCardProps {
   component: Component
@@ -34,7 +34,7 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
                 {component.name}
               </h3>
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                v{component.currentVersion}
+                v{component.versions?.[0]?.version || '1.0.0'}
               </span>
             </div>
             <p className="text-sm text-gray-500 truncate">
@@ -82,7 +82,7 @@ export function ComponentCard({ component, viewMode }: ComponentCardProps) {
               {component.name}
             </h3>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-              v{component.currentVersion}
+              v{component.versions?.[0]?.version || '1.0.0'}
             </span>
           </div>
         </div>
