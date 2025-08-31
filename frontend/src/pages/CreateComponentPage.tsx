@@ -148,7 +148,9 @@ export default function MyComponent({ children, className = '' }: MyComponentPro
       toast.success('Component created successfully!')
       // Invalidate component-related queries to refresh dashboard
       queryClient.invalidateQueries({ queryKey: ['components'] })
+      queryClient.invalidateQueries({ queryKey: ['my-components'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['marketplace'] })
       navigate(`/components/${data.data.id}`)
     },
     onError: (error: any) => {

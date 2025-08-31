@@ -198,3 +198,11 @@ export interface UpdateComponentForm {
   tags?: string[];
   categoryId?: string;
 }
+
+// Dashboard stats types
+export interface DashboardStats {
+  total: number;
+  myComponents: number;
+  recentUpdates: number;
+  categories: number;
+}

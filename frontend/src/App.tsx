@@ -2,7 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
-import { DashboardPage } from '@/pages/DashboardPage'
+import { SimpleDashboard } from '@/pages/SimpleDashboard'
 import { CreateComponentPage } from '@/pages/CreateComponentPage'
 import { ComponentDetailPage } from '@/pages/ComponentDetailPage'
 import { EditComponentPage } from '@/pages/EditComponentPage'
@@ -23,7 +23,15 @@ function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <SimpleDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create"
+        element={
+          <ProtectedRoute>
+            <CreateComponentPage />
           </ProtectedRoute>
         }
       />

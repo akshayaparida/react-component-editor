@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Eye, Code, Copy, Download, Save, Settings } from 'lucide-react'
 import { VisualCanvas } from './VisualCanvas'
 import { CodeGenerator, ComponentCodeGenerator } from './CodeGenerator'
@@ -50,6 +50,14 @@ export function VisualComponentBuilder({
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [showExportPanel, setShowExportPanel] = useState(false)
   const [activePanel, setActivePanel] = useState<'properties' | 'code' | 'export'>('properties')
+
+  // Update component when initialComponent changes (for editing existing components)
+  useEffect(() => {
+    if (initialComponent) {
+      setComponent(initialComponent)
+      setSelectedElement(null) // Reset selection when component changes
+    }
+  }, [initialComponent])
 
   // Update element in component state
   const updateElement = useCallback((elementId: string, updates: Partial<ComponentElement>) => {

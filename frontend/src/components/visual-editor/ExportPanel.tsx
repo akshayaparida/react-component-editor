@@ -15,6 +15,16 @@ export function ExportPanel({ component, onClose }: ExportPanelProps) {
 
   const handleExport = async () => {
     try {
+      // Validate component before export
+      if (!component.name || component.name.trim() === '') {
+        toast.error('Component name is required for export')
+        return
+      }
+      if (!component.elements || component.elements.length === 0) {
+        toast.error('Component must have at least one element to export')
+        return
+      }
+
       switch (selectedFormat.format) {
         case 'react-component':
           const reactCode = codeGenerator.generateReactComponent()
@@ -43,7 +53,9 @@ export function ExportPanel({ component, onClose }: ExportPanelProps) {
           break
       }
     } catch (error) {
-      toast.error('Export failed')
+      const errorMsg = error instanceof Error ? error.message : 'Export failed'
+      toast.error(`Export failed: ${errorMsg}`)
+      console.error('Export error:', error)
     }
   }
 

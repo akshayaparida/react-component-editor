@@ -28,9 +28,15 @@ export function ComponentCard({ component, viewMode, view, showActions = true }:
     },
     onSuccess: () => {
       toast.success('Component deleted successfully!')
-      // Invalidate queries to refresh the dashboard
-      queryClient.invalidateQueries({ queryKey: ['components'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      
+      // Invalidate ALL relevant queries to refresh everything
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['components'] })
+        queryClient.invalidateQueries({ queryKey: ['my-components'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['marketplace'] })
+        queryClient.invalidateQueries({ queryKey: ['categories'] })
+      }, 100) // Small delay to ensure smooth UI transition
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Failed to delete component'

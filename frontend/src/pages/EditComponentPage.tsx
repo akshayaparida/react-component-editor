@@ -1,40 +1,288 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Save, Eye, Code, Settings, AlertTriangle, Paintbrush, Layers } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Code, Copy, AlertTriangle, Edit, Paintbrush, ChevronDown, GitBranch, Clock } from 'lucide-react'
 import { api } from '@/lib/api'
-import { UpdateComponentForm, Category, Component } from '@/types'
+import { Component } from '@/types'
 import { ComponentEditor } from '../components/editor/ComponentEditor'
 import { ComponentPreview } from '../components/editor/ComponentPreview'
-import { EditComponentMetadata } from '../components/editor/EditComponentMetadata'
 import { VisualComponentBuilder } from '../components/visual-editor/VisualComponentBuilder'
-import { ComponentState } from '../components/visual-editor/types'
+import { ComponentState, ComponentElement } from '../components/visual-editor/types'
 
-const updateComponentSchema = z.object({
-  name: z.string().min(1, 'Component name is required').max(100, 'Name too long'),
-  description: z.string().max(500, 'Description too long').optional(),
-  isPublic: z.boolean(),
-  isTemplate: z.boolean(),
-  tags: z.array(z.string()).max(10, 'Maximum 10 tags allowed'),
-  categoryId: z.string().optional(),
-  // Version-specific fields
-  jsxCode: z.string().min(1, 'JSX code is required'),
-  cssCode: z.string().optional(),
-  dependencies: z.record(z.string()).optional(),
-  changelog: z.string().optional(),
-  versionType: z.enum(['patch', 'minor', 'major']),
-})
+// Helper function to convert JSX/CSS back to ComponentState for Visual Editor
+function parseJSXToComponentState(jsxCode: string, cssCode: string, componentName?: string): ComponentState {
+  try {
+    // This is a simplified parser - in a real app you'd want a more robust JSX parser
+    // For now, we'll create a basic structure that works with most simple components
+    
+    const elements: ComponentElement[] = []
+    
+    // Look for common patterns in JSX and create elements
+    
+    // Match button elements
+    const buttonMatches = jsxCode.match(/<button[^>]*>([^<]*)<\/button>/g) || []
+    buttonMatches.forEach((match, index) => {
+      const content = match.match(/>([^<]*)</)?.[1] || 'Button'
+      const styles = extractInlineStyles(match)
+      
+      elements.push({
+        id: `button-${index + 1}`,
+        type: 'button',
+        content,
+        styles: {
+          padding: '8px 16px',
+          backgroundColor: '#3b82f6',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '14px',
+          cursor: 'pointer',
+          ...styles
+        },
+        children: []
+      })
+    })
+    
+    // Match div elements (generic containers)
+    const divMatches = jsxCode.match(/<div[^>]*>([^<]+)<\/div>/g) || []
+    divMatches.forEach((match, index) => {
+      const content = match.match(/>([^<]+)</)?.[1] || ''
+      const styles = extractInlineStyles(match)
+      
+      // Skip if it's likely a wrapper div
+      if (content.trim() && !content.includes('<')) {
+        elements.push({
+          id: `div-${index + 1}`,
+          type: 'div',
+          content,
+          styles: {
+            padding: '16px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            fontSize: '16px',
+            color: '#374151',
+            ...styles
+          },
+          children: []
+        })
+      }
+    })
+    
+    // Match input elements
+    const inputMatches = jsxCode.match(/<input[^>]*\/?>/g) || []
+    inputMatches.forEach((match, index) => {
+      const placeholder = match.match(/placeholder=["']([^"']*)["']/)?.[1] || ''
+      const styles = extractInlineStyles(match)
+      
+      elements.push({
+        id: `input-${index + 1}`,
+        type: 'input',
+        content: placeholder,
+        styles: {
+          padding: '8px 12px',
+          border: '1px solid #d1d5db',
+          borderRadius: '6px',
+          fontSize: '14px',
+          width: '200px',
+          ...styles
+        },
+        children: []
+      })
+    })
+    
+    // If no elements found, create a default one
+    if (elements.length === 0) {
+      elements.push({
+        id: 'element-1',
+        type: 'div',
+        content: 'Component content',
+        styles: {
+          padding: '16px',
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          fontSize: '16px',
+          color: '#374151',
+          fontFamily: 'Inter, sans-serif'
+        },
+        children: []
+      })
+    }
+    
+    // Parse global styles from CSS
+    const globalStyles = parseCSSGlobalStyles(cssCode)
+    
+    return {
+      id: 'root',
+      name: componentName || 'EditedComponent',
+      elements,
+      globalStyles
+    }
+    
+  } catch (error) {
+    console.warn('Failed to parse JSX to ComponentState:', error)
+    // Return default state if parsing fails
+    return {
+      id: 'root',
+      name: componentName || 'EditedComponent',
+      elements: [{
+        id: 'element-1',
+        type: 'div',
+        content: 'Click to edit text',
+        styles: {
+          padding: '16px',
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          fontSize: '16px',
+          color: '#374151',
+          fontFamily: 'Inter, sans-serif'
+        },
+        children: []
+      }],
+      globalStyles: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '16px',
+        lineHeight: '1.5'
+      }
+    }
+  }
+}
+
+// Helper to extract inline styles from JSX elements
+function extractInlineStyles(jsxElement: string): React.CSSProperties {
+  const styles: React.CSSProperties = {}
+  
+  // Match style={{...}} pattern
+  const styleMatch = jsxElement.match(/style={{([^}]*)}}/)
+  if (styleMatch) {
+    const styleString = styleMatch[1]
+    // Parse simple CSS properties (this is basic - could be enhanced)
+    const properties = styleString.split(',')
+    properties.forEach(prop => {
+      const [key, value] = prop.split(':').map(s => s.trim())
+      if (key && value) {
+        // Convert CSS property names to camelCase
+        const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+        // Remove quotes from values
+        const cleanValue = value.replace(/["']/g, '')
+        styles[camelKey as keyof React.CSSProperties] = cleanValue
+      }
+    })
+  }
+  
+  return styles
+}
+
+// Helper to parse CSS for global styles
+function parseCSSGlobalStyles(cssCode: string): React.CSSProperties {
+  const globalStyles: React.CSSProperties = {
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '16px',
+    lineHeight: '1.5'
+  }
+  
+  try {
+    // Look for common global CSS patterns
+    if (cssCode.includes('font-family')) {
+      const fontMatch = cssCode.match(/font-family:\s*([^;]+)/)
+      if (fontMatch) {
+        globalStyles.fontFamily = fontMatch[1].trim()
+      }
+    }
+    
+    if (cssCode.includes('font-size')) {
+      const sizeMatch = cssCode.match(/font-size:\s*([^;]+)/)
+      if (sizeMatch) {
+        globalStyles.fontSize = sizeMatch[1].trim()
+      }
+    }
+    
+    if (cssCode.includes('line-height')) {
+      const heightMatch = cssCode.match(/line-height:\s*([^;]+)/)
+      if (heightMatch) {
+        globalStyles.lineHeight = heightMatch[1].trim()
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to parse CSS global styles:', error)
+  }
+  
+  return globalStyles
+}
+
+// Helper functions for converting visual state to code (for saving from Visual Editor)
+function generateJSXFromVisualState(componentState: ComponentState): string {
+  const { name, elements } = componentState
+  
+  const generateElementJSX = (element: ComponentElement): string => {
+    const { type, content, styles } = element
+    const styleString = Object.entries(styles || {})
+      .map(([key, value]) => `${key}: '${value}'`)
+      .join(', ')
+    
+    switch (type) {
+      case 'button':
+        return `<button style={{${styleString}}}>${content}</button>`
+      case 'input':
+        return `<input placeholder="${content}" style={{${styleString}}} />`
+      case 'text':
+      case 'div':
+      default:
+        return `<div style={{${styleString}}}>${content}</div>`
+    }
+  }
+  
+  const elementsJSX = elements.map(generateElementJSX).join('\n    ')
+  
+  return `import React from 'react'
+
+interface Props {
+  className?: string
+}
+
+export default function ${name || 'MyComponent'}({ className = '' }: Props) {
+  return (
+    <div className={\`component-container \${className}\`}>
+      ${elementsJSX}
+    </div>
+  )
+}`
+}
+
+function generateCSSFromVisualState(componentState: ComponentState): string {
+  const { globalStyles } = componentState
+  
+  let css = `.component-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}`
+  
+  if (globalStyles) {
+    css += `\n\n.component-container * {
+  font-family: ${globalStyles.fontFamily || 'Inter, sans-serif'};
+  font-size: ${globalStyles.fontSize || '16px'};
+  line-height: ${globalStyles.lineHeight || '1.5'};
+}`
+  }
+  
+  return css
+}
 
 export function EditComponentPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'visual' | 'code' | 'preview' | 'metadata'>('visual')
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [activeTab, setActiveTab] = useState<'visual' | 'code' | 'preview'>('visual')
+  // Always in edit mode - no view mode needed
+  const [jsxCode, setJsxCode] = useState('')
+  const [cssCode, setCssCode] = useState('')
+  const [hasChanges, setHasChanges] = useState(false)
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false)
 
   // Fetch component details
   const { data: component, isLoading: componentLoading, error } = useQuery({
@@ -47,90 +295,144 @@ export function EditComponentPage() {
     enabled: !!id,
   })
 
-  const form = useForm<UpdateComponentForm & { jsxCode: string; cssCode?: string; dependencies?: Record<string, string>; changelog?: string; versionType: 'patch' | 'minor' | 'major' }>({
-    resolver: zodResolver(updateComponentSchema),
-    defaultValues: {
-      versionType: 'patch'
+  // Get current version (selected or latest)
+  const getCurrentVersion = () => {
+    if (!component?.versions) return null
+    
+    if (selectedVersionId) {
+      return component.versions.find(v => v.id === selectedVersionId) || component.versions[0]
     }
-  })
+    
+    return component.versions[0] // Latest version
+  }
+  
+  const currentVersion = getCurrentVersion()
 
-  // Initialize form with component data
+  // Initialize code from component data
   useEffect(() => {
-    if (component && component.versions?.[0]) {
-      const latestVersion = component.versions[0]
-      form.reset({
-        name: component.name,
-        description: component.description || '',
-        isPublic: component.isPublic,
-        isTemplate: component.isTemplate,
-        tags: component.tags,
-        categoryId: component.categoryId || '',
-        jsxCode: latestVersion.jsxCode,
-        cssCode: latestVersion.cssCode || '',
-        dependencies: latestVersion.dependencies || { 'react': '^18.0.0' },
-        changelog: '',
-        versionType: 'patch'
-      })
+    if (currentVersion) {
+      setJsxCode(currentVersion.jsxCode)
+      setCssCode(currentVersion.cssCode || '')
+      setHasChanges(false) // Reset changes when switching versions
     }
-  }, [component, form])
-
-  // Watch for form changes
+  }, [currentVersion])
+  
+  // Handle version selection
+  const handleVersionChange = (versionId: string) => {
+    if (hasChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Switching versions will lose your changes. Continue?'
+      )
+      if (!confirmed) return
+    }
+    
+    setSelectedVersionId(versionId)
+    setShowVersionDropdown(false)
+    setHasChanges(false)
+  }
+  
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const subscription = form.watch(() => {
-      setHasUnsavedChanges(true)
-    })
-    return () => subscription.unsubscribe()
-  }, [form])
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showVersionDropdown) {
+        const target = event.target as HTMLElement
+        if (!target.closest('.version-dropdown')) {
+          setShowVersionDropdown(false)
+        }
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showVersionDropdown])
 
-  // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await api.get('/categories')
-      return response.data.data || []
-    },
-  })
+  // Copy to clipboard functions
+  const copyJSXCode = async () => {
+    try {
+      await navigator.clipboard.writeText(jsxCode)
+      toast.success('JSX code copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy JSX code')
+    }
+  }
 
-  // Update component mutation
-  const updateComponentMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const { jsxCode, cssCode, dependencies, changelog, versionType, ...componentData } = data
+  const copyCSSCode = async () => {
+    try {
+      await navigator.clipboard.writeText(cssCode)
+      toast.success('CSS code copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy CSS code')
+    }
+  }
+
+  // Save mutation - create new version with updated code
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!component?.versions?.[0]) {
+        throw new Error('No existing version found')
+      }
+
+      const currentVersion = component.versions[0]
       
-      // Update component metadata
-      await api.put(`/components/${id}`, componentData)
-      
-      // Create new version
+      // Generate next version number (increment patch version)
+      const versionParts = currentVersion.version.split('.').map(Number)
+      versionParts[2] += 1 // Increment patch version
+      const nextVersion = versionParts.join('.')
+
+      // Create new version with updated code
       const versionData = {
+        version: nextVersion,
         jsxCode,
-        cssCode,
-        dependencies,
-        changelog: changelog || `${versionType} update`
+        cssCode: cssCode || '',
+        dependencies: currentVersion.dependencies || {},
+        changelog: 'Updated component code',
+        isStable: false, // Mark as unstable initially
       }
       
       const response = await api.post(`/components/${id}/versions`, versionData)
       return response.data
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Component updated successfully!')
-      setHasUnsavedChanges(false)
-      // Invalidate queries to refresh data
+      setHasChanges(false)
       queryClient.invalidateQueries({ queryKey: ['component', id] })
       queryClient.invalidateQueries({ queryKey: ['components'] })
-      // Navigate back to component detail
-      navigate(`/components/${id}`)
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to update component'
+      console.error('Save error:', error)
+      const message = error.response?.data?.message || 'Failed to save component'
       toast.error(message)
     },
   })
 
-  const handleSubmit = form.handleSubmit((data) => {
-    updateComponentMutation.mutate(data)
-  })
+  const handleSave = () => {
+    saveMutation.mutate()
+  }
+
+  const handleCancelEdit = () => {
+    setHasChanges(false)
+    // Reset to original values
+    if (component && component.versions?.[0]) {
+      const latestVersion = component.versions[0]
+      setJsxCode(latestVersion.jsxCode)
+      setCssCode(latestVersion.cssCode || '')
+    }
+  }
+
+  const handleJsxChange = (code: string) => {
+    setJsxCode(code)
+    setHasChanges(true)
+  }
+
+  const handleCssChange = (code: string) => {
+    setCssCode(code)
+    setHasChanges(true)
+  }
 
   const handleBack = () => {
-    if (hasUnsavedChanges) {
+    if (hasChanges) {
       if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
         navigate(`/components/${id}`)
       }
@@ -138,26 +440,6 @@ export function EditComponentPage() {
       navigate(`/components/${id}`)
     }
   }
-
-  const handleSaveDraft = () => {
-    // Save current state to localStorage as draft
-    const currentValues = form.getValues()
-    localStorage.setItem(`component-draft-${id}`, JSON.stringify(currentValues))
-    toast.success('Draft saved locally')
-  }
-
-  // Load draft on mount
-  useEffect(() => {
-    const savedDraft = localStorage.getItem(`component-draft-${id}`)
-    if (savedDraft && !component) {
-      try {
-        const draftData = JSON.parse(savedDraft)
-        form.reset(draftData)
-      } catch (error) {
-        console.error('Failed to load draft:', error)
-      }
-    }
-  }, [id, component, form])
 
   if (componentLoading) {
     return (
@@ -204,37 +486,93 @@ export function EditComponentPage() {
                 <h1 className="text-xl font-semibold text-gray-900">
                   Edit: {component.name}
                 </h1>
-                <p className="text-sm text-gray-500">
-                  Current version: v{component.versions?.[0]?.version || '1.0.0'} → New {form.watch('versionType')} version
-                </p>
+                <div className="flex items-center space-x-4">
+                  {/* Version Selector */}
+                  <div className="relative version-dropdown">
+                    <button
+                      onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                      className="flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      v{currentVersion?.version || '1.0.0'}
+                      {currentVersion?.isLatest && (
+                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                          Latest
+                        </span>
+                      )}
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </button>
+                    
+                    {/* Version Dropdown */}
+                    {showVersionDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-50">
+                        <div className="py-1">
+                          <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b border-gray-200">
+                            Select Version to Edit
+                          </div>
+                          {component?.versions?.map((version) => (
+                            <button
+                              key={version.id}
+                              onClick={() => handleVersionChange(version.id)}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${
+                                currentVersion?.id === version.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium">v{version.version}</span>
+                                  {version.isLatest && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      Latest
+                                    </span>
+                                  )}
+                                  {version.isStable && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                      Stable
+                                    </span>
+                                  )}
+                                </div>
+                                <Clock className="w-3 h-3 text-gray-400" />
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {version.changelog || 'No changelog'}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                {new Date(version.createdAt).toLocaleDateString()}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-gray-500">
+                    • Visual Editor Ready
+                    {hasChanges && <span className="text-orange-600"> • Unsaved changes</span>}
+                  </div>
+                </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              {hasUnsavedChanges && (
-                <div className="flex items-center text-sm text-orange-600">
-                  <div className="w-2 h-2 bg-orange-600 rounded-full mr-2"></div>
-                  Unsaved changes
-                </div>
-              )}
               <button
-                type="button"
-                onClick={handleSaveDraft}
+                onClick={handleCancelEdit}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                Save Draft
+                Reset Changes
               </button>
               <button
-                onClick={handleSubmit}
-                disabled={updateComponentMutation.isPending}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSave}
+                disabled={saveMutation.isPending || !hasChanges}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {updateComponentMutation.isPending ? (
+                {saveMutation.isPending ? (
                   <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
                   <Save className="w-4 h-4 mr-2" />
                 )}
-                Update Component
+                Save Changes
               </button>
             </div>
           </div>
@@ -281,22 +619,10 @@ export function EditComponentPage() {
               <Eye className="w-4 h-4 mr-2" />
               Preview
             </button>
-            <button
-              onClick={() => setActiveTab('metadata')}
-              className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                activeTab === 'metadata'
-                  ? 'bg-white text-gray-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </button>
           </nav>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Tab Content */}
+        <div className="space-y-6">
           {activeTab === 'visual' && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200 p-6">
@@ -307,84 +633,97 @@ export function EditComponentPage() {
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">Visual Component Editor</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Design your component visually with drag-and-drop. No coding required!
+                      Design your component visually with drag-and-drop. Changes will be saved to code automatically.
                     </p>
                   </div>
                 </div>
               </div>
               <div className="h-screen">
                 <VisualComponentBuilder
+                  initialComponent={parseJSXToComponentState(jsxCode, cssCode, component.name)}
                   onSave={(componentState) => {
-                    // Convert visual component to JSX code
-                    // This would need to be implemented to convert the visual state to code
-                    toast.success('Visual changes saved!')
-                    setHasUnsavedChanges(true)
+                    try {
+                      // Convert visual component to JSX/CSS code and update state
+                      const generatedJSX = generateJSXFromVisualState(componentState)
+                      const generatedCSS = generateCSSFromVisualState(componentState)
+                      
+                      // Update the JSX and CSS code state
+                      setJsxCode(generatedJSX)
+                      setCssCode(generatedCSS)
+                      setHasChanges(true)
+                      
+                      toast.success('Visual changes applied to code!')
+                    } catch (error) {
+                      console.error('Error converting visual state to code:', error)
+                      toast.error('Failed to convert visual design to code')
+                    }
                   }}
                 />
               </div>
             </div>
           )}
-
+          
           {activeTab === 'code' && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <Code className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-medium text-blue-900">Source Code Editor</h3>
+              {/* Always show ComponentEditor with inline copy buttons */}
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="bg-blue-50 border-b border-blue-200 px-6 py-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-blue-900">Component Source Code</h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Edit your component code directly or copy it to use in your project
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={copyJSXCode}
+                      className="flex items-center px-3 py-1.5 text-sm text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                    >
+                      <Copy className="w-4 h-4 mr-1.5" />
+                      Copy JSX
+                    </button>
+                    {cssCode && (
+                      <button
+                        onClick={copyCSSCode}
+                        className="flex items-center px-3 py-1.5 text-sm text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-md transition-colors"
+                      >
+                        <Copy className="w-4 h-4 mr-1.5" />
+                        Copy CSS
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm text-blue-700 mt-1">
-                  Edit the raw JSX and CSS code directly. For advanced users.
-                </p>
+                <div className="p-0">
+                  <ComponentEditor
+                    jsxCode={jsxCode}
+                    cssCode={cssCode}
+                    language={component.language}
+                    onJsxCodeChange={handleJsxChange}
+                    onCssCodeChange={handleCssChange}
+                  />
+                </div>
               </div>
-              <ComponentEditor
-                jsxCode={form.watch('jsxCode') || ''}
-                cssCode={form.watch('cssCode') || ''}
-                language={component.language}
-                onJsxCodeChange={(code) => form.setValue('jsxCode', code)}
-                onCssCodeChange={(code) => form.setValue('cssCode', code)}
-              />
             </div>
           )}
 
           {activeTab === 'preview' && (
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <Eye className="w-5 h-5 text-green-600" />
-                  <h3 className="font-medium text-green-900">Component Preview</h3>
-                </div>
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="bg-green-50 border-b border-green-200 px-6 py-4">
+                <h3 className="text-lg font-medium text-green-900">Component Preview</h3>
                 <p className="text-sm text-green-700 mt-1">
-                  See how your component will look when rendered.
+                  See how your component will look when rendered
                 </p>
               </div>
-              <ComponentPreview
-                jsxCode={form.watch('jsxCode') || ''}
-                cssCode={form.watch('cssCode') || ''}
-                dependencies={form.watch('dependencies') || {}}
-              />
-            </div>
-          )}
-
-          {activeTab === 'metadata' && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <Settings className="w-5 h-5 text-gray-600" />
-                  <h3 className="font-medium text-gray-900">Component Settings</h3>
-                </div>
-                <p className="text-sm text-gray-700 mt-1">
-                  Configure component metadata, version, and publishing options.
-                </p>
+              <div className="p-6">
+                <ComponentPreview
+                  jsxCode={jsxCode}
+                  cssCode={cssCode}
+                  dependencies={component?.versions?.[0]?.dependencies || {}}
+                />
               </div>
-              <EditComponentMetadata
-                form={form}
-                categories={categories}
-                component={component}
-                isLoading={updateComponentMutation.isPending}
-              />
             </div>
           )}
-        </form>
+        </div>
       </div>
     </div>
   )

@@ -9,7 +9,27 @@ interface CodeGeneratorProps {
 }
 
 export class ComponentCodeGenerator {
-  constructor(private component: ComponentState) {}
+  private component: ComponentState
+  
+  constructor(component: ComponentState) {
+    // Validate component state
+    if (!component) {
+      throw new Error('Component state is required')
+    }
+    if (!component.name || component.name.trim() === '') {
+      throw new Error('Component name is required')
+    }
+    if (!component.elements) {
+      throw new Error('Component elements are required')
+    }
+    
+    this.component = {
+      ...component,
+      name: component.name.replace(/[^a-zA-Z0-9]/g, ''), // Clean component name
+      elements: component.elements || [],
+      globalStyles: component.globalStyles || {}
+    }
+  }
 
   // Convert CSS-in-JS styles to CSS string
   private stylesToCSS(styles: React.CSSProperties, selector: string = ''): string {
@@ -197,22 +217,41 @@ export default App`
 
 export function CodeGenerator({ component, onCopyCode }: CodeGeneratorProps) {
   const [activeCodeTab, setActiveCodeTab] = useState<'react' | 'typescript' | 'css' | 'usage'>('react')
-  const codeGenerator = useMemo(() => new ComponentCodeGenerator(component), [component])
+  const [error, setError] = useState<string | null>(null)
+  
+  const codeGenerator = useMemo(() => {
+    try {
+      return new ComponentCodeGenerator(component)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize code generator')
+      return null
+    }
+  }, [component])
 
   const generatedCode = useMemo(() => {
-    switch (activeCodeTab) {
-      case 'react':
-        return codeGenerator.generateReactComponent()
-      case 'typescript':
-        return codeGenerator.generateTypeScriptComponent()
-      case 'css':
-        return codeGenerator.generateCSS()
-      case 'usage':
-        return codeGenerator.generateUsageExample()
-      default:
-        return ''
+    if (!codeGenerator || error) {
+      return `// Error: ${error || 'Code generator not available'}\n// Please check your component configuration`
     }
-  }, [codeGenerator, activeCodeTab])
+    
+    try {
+      switch (activeCodeTab) {
+        case 'react':
+          return codeGenerator.generateReactComponent()
+        case 'typescript':
+          return codeGenerator.generateTypeScriptComponent()
+        case 'css':
+          return codeGenerator.generateCSS()
+        case 'usage':
+          return codeGenerator.generateUsageExample()
+        default:
+          return ''
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Code generation failed'
+      setError(errorMsg)
+      return `// Error: ${errorMsg}\n// Please check your component configuration`
+    }
+  }, [codeGenerator, activeCodeTab, error])
 
   const handleCopyCode = async () => {
     try {

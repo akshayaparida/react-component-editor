@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { ComponentCard } from '@/components/dashboard/ComponentCard';
 import { SearchBar } from '@/components/dashboard/SearchBar';
@@ -66,24 +67,33 @@ export function MarketplacePage() {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const handleForkComponent = async (componentId: string) => {
-    try {
-      const response = await api.post(`/components/${componentId}/fork`, {});
+  // Fork component mutation with proper loading states and cache invalidation
+  const forkComponentMutation = useMutation({
+    mutationFn: async (componentId: string) => {
+      const response = await api.post(`/components/${componentId}/fork`, {})
+      return response.data
+    },
+    onSuccess: (data) => {
+      toast.success(`Component "${data.data.name}" forked successfully! Check your dashboard.`)
       
-      // Invalidate relevant queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['components'] }); // Dashboard components
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }); // Dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['marketplace-components'] }); // Marketplace data (download count update)
-      
-      // Show success message with better UX
-      alert(`Component "${response.data.data.name}" forked successfully! It's now available in your dashboard.`);
-      
-      // Optional: Navigate to dashboard to see the forked component
-      // navigate('/');  // Uncomment if you want to redirect to dashboard after fork
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to fork component';
-      alert(message);
-    }
+      // Invalidate ALL relevant queries to refresh everything
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['components'] })           // Legacy dashboard
+        queryClient.invalidateQueries({ queryKey: ['my-components'] })        // New simplified dashboard
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })      // Dashboard stats
+        queryClient.invalidateQueries({ queryKey: ['marketplace-components'] }) // Marketplace data
+        queryClient.invalidateQueries({ queryKey: ['marketplace'] })          // Marketplace queries
+        queryClient.invalidateQueries({ queryKey: ['categories'] })           // Category data
+      }, 100) // Small delay for smooth UI transition
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to fork component'
+      toast.error(message)
+    },
+  })
+
+  const handleForkComponent = (componentId: string) => {
+    forkComponentMutation.mutate(componentId)
   };
 
   return (
@@ -230,10 +240,18 @@ export function MarketplacePage() {
                   {user && component.author.id !== user.id && (
                     <button
                       onClick={() => handleForkComponent(component.id)}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                      disabled={forkComponentMutation.isPending}
+                      className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Fork this component"
                     >
-                      Fork
+                      {forkComponentMutation.isPending ? (
+                        <>
+                          <div className="w-3 h-3 mr-1 animate-spin rounded-full border border-white border-t-transparent"></div>
+                          Forking...
+                        </>
+                      ) : (
+                        'Fork'
+                      )}
                     </button>
                   )}
                 </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Search, Plus, Filter, Grid, List, Star, Clock, User } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { Component, Category } from '@/types'
+import { Component, Category, DashboardStats } from '@/types'
 import { ComponentCard } from '@/components/dashboard/ComponentCard'
 import { CategoryFilter } from '@/components/dashboard/CategoryFilter'
 import { SearchBar } from '@/components/dashboard/SearchBar'
@@ -40,12 +40,14 @@ export function DashboardPage() {
   })
 
   // Get component stats
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await api.get('/components/stats')
-      return response.data
+      return response.data.data
     },
+    retry: 3,
+    retryDelay: 1000,
   })
 
   return (
@@ -54,7 +56,39 @@ export function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        {stats && (
+        {statsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : statsError ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <div className="flex items-center">
+              <div className="text-red-600">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error loading statistics</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  Unable to load dashboard statistics. Please refresh the page or try again later.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex items-center">
@@ -99,12 +133,12 @@ export function DashboardPage() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Categories</p>
-                  <p className="text-2xl font-semibold text-gray-900">{categories.length}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.categories || 0}</p>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Filters and Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
