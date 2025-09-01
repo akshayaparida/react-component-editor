@@ -77,7 +77,7 @@ function EditableText({ element, isSelected, onSelect, onUpdateContent }: Editab
     >
       {element.content || 'Click to edit text'}
       {isSelected && (
-        <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+        <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
           Text • Double-click to edit
         </div>
       )}
@@ -129,7 +129,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               onUpdateContent={onUpdateContent}
             />
             {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Button • Double-click text to edit
               </div>
             )}
@@ -152,7 +152,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               readOnly
             />
             {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Input Field
               </div>
             )}
@@ -169,7 +169,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               className="max-w-full h-auto"
             />
             {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Image • Edit URL in properties
               </div>
             )}
@@ -210,7 +210,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
             )}
 
             {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 {element.type === 'flex' ? 'Flex Container' : 'Container'}
               </div>
             )}
