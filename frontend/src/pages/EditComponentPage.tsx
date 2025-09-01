@@ -92,6 +92,27 @@ function parseJSXToComponentState(jsxCode: string, cssCode: string, componentNam
       })
     })
     
+    // Match image elements
+    const imageMatches = jsxCode.match(/<img[^>]*\/?>/g) || []
+    imageMatches.forEach((match, index) => {
+      const src = match.match(/src=["']([^"']*)["']/)?.[1] || ''
+      const styles = extractInlineStyles(match)
+      
+      elements.push({
+        id: `image-${index + 1}`,
+        type: 'image',
+        content: src,
+        styles: {
+          width: '200px',
+          height: '150px',
+          objectFit: 'cover',
+          borderRadius: '8px',
+          ...styles
+        },
+        children: []
+      })
+    })
+    
     // If no elements found, create a default one
     if (elements.length === 0) {
       elements.push({
@@ -228,6 +249,8 @@ function generateJSXFromVisualState(componentState: ComponentState): string {
         return `<button style={{${styleString}}}>${content}</button>`
       case 'input':
         return `<input placeholder="${content}" style={{${styleString}}} />`
+      case 'image':
+        return `<img src="${content}" alt="Component image" style={{${styleString}}} />`
       case 'text':
       case 'div':
       default:

@@ -27,6 +27,10 @@ function generateJSXFromVisualState(componentState: ComponentState): string {
     switch (type) {
       case 'button':
         return `<button style={{${styleString}}}>${content}</button>`
+      case 'input':
+        return `<input placeholder="${content}" style={{${styleString}}} />`
+      case 'image':
+        return `<img src="${content}" alt="Component image" style={{${styleString}}} />`
       case 'text':
       case 'div':
       default:
