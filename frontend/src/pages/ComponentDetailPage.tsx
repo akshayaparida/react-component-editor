@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft, 
   Edit3, 
@@ -22,10 +22,13 @@ import { api } from '@/lib/api'
 import { Component } from '@/types'
 import { ComponentEditor } from '../components/editor/ComponentEditor'
 import { ComponentPreview } from '../components/editor/ComponentPreview'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function ComponentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'versions'>('preview')
   const [copied, setCopied] = useState(false)
 
@@ -70,6 +73,30 @@ export function ComponentDetailPage() {
     },
   })
 
+  // Fork component mutation
+  const forkComponentMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/components/${id}/fork`, {})
+      return response.data
+    },
+    onSuccess: (data) => {
+      toast.success(`Component "${data.data.name}" forked successfully! Check your dashboard.`)
+      
+      // Invalidate relevant queries to refresh data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['components'] })
+        queryClient.invalidateQueries({ queryKey: ['my-components'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['marketplace-components'] })
+        queryClient.invalidateQueries({ queryKey: ['marketplace'] })
+      }, 100)
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to fork component'
+      toast.error(message)
+    },
+  })
+
   const handleBack = () => {
     navigate('/')
   }
@@ -77,6 +104,13 @@ export function ComponentDetailPage() {
   const handleEdit = () => {
     navigate(`/components/${id}/edit`)
   }
+
+  const handleFork = () => {
+    forkComponentMutation.mutate()
+  }
+
+  // Check if current user is the owner of the component
+  const isOwner = user && component && user.id === component.author.id
 
   const handleDownload = () => {
     if (!component?.versions?.[0]) return
@@ -162,13 +196,34 @@ export function ComponentDetailPage() {
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </button>
-              <button
-                onClick={handleEdit}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit
-              </button>
+              {isOwner ? (
+                <button
+                  onClick={handleEdit}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </button>
+              ) : user ? (
+                <button
+                  onClick={handleFork}
+                  disabled={forkComponentMutation.isPending}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Fork this component to make your own copy"
+                >
+                  {forkComponentMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Forking...
+                    </>
+                  ) : (
+                    <>
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      Fork
+                    </>
+                  )}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

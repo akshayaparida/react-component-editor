@@ -111,7 +111,7 @@ export function MarketplacePage() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <ViewToggle view={view} onViewChange={setView} />
+              <ViewToggle mode={view} onChange={setView} />
             </div>
           </div>
 
