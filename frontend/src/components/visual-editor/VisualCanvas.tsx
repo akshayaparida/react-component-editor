@@ -76,11 +76,6 @@ function EditableText({ element, isSelected, onSelect, onUpdateContent }: Editab
       style={element.styles}
     >
       {element.content || 'Click to edit text'}
-      {isSelected && (
-        <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
-          Text • Double-click to edit
-        </div>
-      )}
     </div>
   )
 }
@@ -128,11 +123,6 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               onSelect={() => {}}
               onUpdateContent={onUpdateContent}
             />
-            {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
-                Button • Double-click text to edit
-              </div>
-            )}
           </button>
         )
 
@@ -151,11 +141,6 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               }}
               readOnly
             />
-            {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
-                Input Field
-              </div>
-            )}
           </div>
         )
 
@@ -168,11 +153,6 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               style={element.styles}
               className="max-w-full h-auto"
             />
-            {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
-                Image • Edit URL in properties
-              </div>
-            )}
           </div>
         )
 
@@ -209,11 +189,6 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               </div>
             )}
 
-            {isSelected && (
-              <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
-                {element.type === 'flex' ? 'Flex Container' : 'Container'}
-              </div>
-            )}
           </div>
         )
     }
