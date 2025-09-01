@@ -61,12 +61,20 @@ export function VisualComponentBuilder({
 
   // Update element in component state
   const updateElement = useCallback((elementId: string, updates: Partial<ComponentElement>) => {
-    setComponent(prev => ({
-      ...prev,
-      elements: prev.elements.map(el =>
-        el.id === elementId ? { ...el, ...updates } : el
-      )
-    }))
+    setComponent(prev => {
+      // Find the element and its current index to preserve ordering
+      const elementIndex = prev.elements.findIndex(el => el.id === elementId);
+      if (elementIndex === -1) return prev; // Element not found
+      
+      // Create a new elements array with the updated element at the same index
+      const updatedElements = [...prev.elements];
+      updatedElements[elementIndex] = { ...updatedElements[elementIndex], ...updates };
+      
+      return {
+        ...prev,
+        elements: updatedElements
+      };
+    });
   }, [])
 
   // Update element styles

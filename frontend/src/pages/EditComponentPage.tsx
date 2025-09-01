@@ -13,104 +13,116 @@ import { ComponentState, ComponentElement } from '../components/visual-editor/ty
 // Helper function to convert JSX/CSS back to ComponentState for Visual Editor
 function parseJSXToComponentState(jsxCode: string, cssCode: string, componentName?: string): ComponentState {
   try {
+    console.log('Parsing JSX to ComponentState:')
+    console.log('JSX Code:', jsxCode)
+    console.log('CSS Code:', cssCode)
+    
     // This is a simplified parser - in a real app you'd want a more robust JSX parser
     // For now, we'll create a basic structure that works with most simple components
     
     const elements: ComponentElement[] = []
     
-    // Look for common patterns in JSX and create elements
+    // Find all JSX elements with their positions to preserve order
+    const elementRegex = /<(button|div|input|img)[^>]*(?:\/?>|>.*?<\/\1>)/gs
+    const elementMatches: Array<{ match: string; index: number; type: string }> = []
     
-    // Match button elements
-    const buttonMatches = jsxCode.match(/<button[^>]*>([^<]*)<\/button>/g) || []
-    buttonMatches.forEach((match, index) => {
-      const content = match.match(/>([^<]*)</)?.[1] || 'Button'
-      const styles = extractInlineStyles(match)
-      
-      elements.push({
-        id: `button-${index + 1}`,
-        type: 'button',
-        content,
-        styles: {
-          padding: '8px 16px',
-          backgroundColor: '#3b82f6',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '6px',
-          fontSize: '14px',
-          cursor: 'pointer',
-          ...styles
-        },
-        children: []
+    let match
+    while ((match = elementRegex.exec(jsxCode)) !== null) {
+      elementMatches.push({
+        match: match[0],
+        index: match.index,
+        type: match[1]
       })
-    })
+    }
     
-    // Match div elements (generic containers)
-    const divMatches = jsxCode.match(/<div[^>]*>([^<]+)<\/div>/g) || []
-    divMatches.forEach((match, index) => {
-      const content = match.match(/>([^<]+)</)?.[1] || ''
-      const styles = extractInlineStyles(match)
+    console.log('Found element matches:', elementMatches)
+    
+    // Sort by position to maintain original order
+    elementMatches.sort((a, b) => a.index - b.index)
+    
+    // Process each element in order
+    elementMatches.forEach((elementMatch, index) => {
+      const { match: elementStr, type } = elementMatch
+      const styles = extractInlineStyles(elementStr)
       
-      // Skip if it's likely a wrapper div
-      if (content.trim() && !content.includes('<')) {
-        elements.push({
-          id: `div-${index + 1}`,
-          type: 'div',
-          content,
-          styles: {
-            padding: '16px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            fontSize: '16px',
-            color: '#374151',
-            ...styles
-          },
-          children: []
-        })
+      switch (type) {
+        case 'button':
+          const buttonContent = elementStr.match(/>([^<]*)</)?.[1] || 'Button'
+          elements.push({
+            id: `button-${index}`,
+            type: 'button',
+            content: buttonContent,
+            styles: {
+              padding: '8px 16px',
+              backgroundColor: '#3b82f6',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              cursor: 'pointer',
+              ...styles
+            },
+            children: []
+          })
+          break
+          
+        case 'div':
+          const divContent = elementStr.match(/>([^<]*)</)?.[1] || ''
+          // Skip if it's likely a wrapper div or empty
+          if (divContent.trim() && !divContent.includes('<')) {
+            elements.push({
+              id: `div-${index}`,
+              type: 'div',
+              content: divContent,
+              styles: {
+                padding: '16px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                color: '#374151',
+                ...styles
+              },
+              children: []
+            })
+          }
+          break
+          
+        case 'input':
+          const placeholder = elementStr.match(/placeholder=["']([^"']*)["']/)?.[1] || ''
+          elements.push({
+            id: `input-${index}`,
+            type: 'input',
+            content: placeholder,
+            styles: {
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px',
+              width: '200px',
+              ...styles
+            },
+            children: []
+          })
+          break
+          
+        case 'img':
+          const src = elementStr.match(/src=["']([^"']*)["']/)?.[1] || ''
+          elements.push({
+            id: `image-${index}`,
+            type: 'image',
+            content: src,
+            styles: {
+              width: '200px',
+              height: '150px',
+              objectFit: 'cover',
+              borderRadius: '8px',
+              ...styles
+            },
+            children: []
+          })
+          break
       }
-    })
-    
-    // Match input elements
-    const inputMatches = jsxCode.match(/<input[^>]*\/?>/g) || []
-    inputMatches.forEach((match, index) => {
-      const placeholder = match.match(/placeholder=["']([^"']*)["']/)?.[1] || ''
-      const styles = extractInlineStyles(match)
-      
-      elements.push({
-        id: `input-${index + 1}`,
-        type: 'input',
-        content: placeholder,
-        styles: {
-          padding: '8px 12px',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          fontSize: '14px',
-          width: '200px',
-          ...styles
-        },
-        children: []
-      })
-    })
-    
-    // Match image elements
-    const imageMatches = jsxCode.match(/<img[^>]*\/?>/g) || []
-    imageMatches.forEach((match, index) => {
-      const src = match.match(/src=["']([^"']*)["']/)?.[1] || ''
-      const styles = extractInlineStyles(match)
-      
-      elements.push({
-        id: `image-${index + 1}`,
-        type: 'image',
-        content: src,
-        styles: {
-          width: '200px',
-          height: '150px',
-          objectFit: 'cover',
-          borderRadius: '8px',
-          ...styles
-        },
-        children: []
-      })
     })
     
     // If no elements found, create a default one
@@ -666,9 +678,14 @@ export function EditComponentPage() {
                   initialComponent={parseJSXToComponentState(jsxCode, cssCode, component.name)}
                   onSave={(componentState) => {
                     try {
+                      console.log('Saving visual component state:', componentState)
+                      
                       // Convert visual component to JSX/CSS code and update state
                       const generatedJSX = generateJSXFromVisualState(componentState)
                       const generatedCSS = generateCSSFromVisualState(componentState)
+                      
+                      console.log('Generated JSX:', generatedJSX)
+                      console.log('Generated CSS:', generatedCSS)
                       
                       // Update the JSX and CSS code state
                       setJsxCode(generatedJSX)
