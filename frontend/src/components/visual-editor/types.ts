@@ -188,7 +188,7 @@ export const VISUAL_EDITOR_TOOLS = [
     id: 'image',
     name: 'Image',
     elementType: 'image' as const,
-    defaultContent: 'https://via.placeholder.com/200x150',
+    defaultContent: '',
     defaultStyles: {
       width: '200px',
       height: '150px',

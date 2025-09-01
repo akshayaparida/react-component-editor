@@ -148,11 +148,18 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
         return (
           <div {...commonProps}>
             <img
-              src={element.content || 'https://via.placeholder.com/200x150/e2e8f0/9ca3af?text=Image'}
-              alt="Visual element"
+              src={element.content || 'https://via.placeholder.com/200x150/e2e8f0/9ca3af?text=Click+to+Edit+Image'}
+              alt={element.content ? 'Component image' : 'Placeholder image - click to select and edit URL'}
               style={element.styles}
               className="max-w-full h-auto"
             />
+            {isSelected && !element.content && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 rounded">
+                <p className="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow text-center">
+                  Select this image and edit URL in Properties panel →
+                </p>
+              </div>
+            )}
           </div>
         )
 

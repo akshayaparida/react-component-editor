@@ -242,15 +242,18 @@ export function PropertyPanel({
         {selectedElementData.type === 'image' && (
           <div className="mb-4">
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Image URL
+              Image URL *
             </label>
             <input
-              type="text"
+              type="url"
               value={selectedElementData.content}
               onChange={(e) => handleContentChange(e.target.value)}
               className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="https://example.com/image.jpg"
+              placeholder="https://images.unsplash.com/photo-example.jpg"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 Paste any image URL from Unsplash, your CDN, or web hosting
+            </p>
           </div>
         )}
       </div>
