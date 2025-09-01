@@ -19,7 +19,6 @@ interface EditableTextProps {
 function EditableText({ element, isSelected, onSelect, onUpdateContent }: EditableTextProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(element.content)
-  const [isHovered, setIsHovered] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -71,15 +70,13 @@ function EditableText({ element, isSelected, onSelect, onUpdateContent }: Editab
     <div
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={`cursor-pointer transition-all ${
         isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'
       }`}
       style={element.styles}
     >
       {element.content || 'Click to edit text'}
-      {isSelected && isHovered && (
+      {isSelected && (
         <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
           Text • Double-click to edit
         </div>
@@ -96,8 +93,6 @@ interface VisualElementProps {
 }
 
 function VisualElement({ element, isSelected, onSelect, onUpdateContent }: VisualElementProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onSelect()
@@ -107,8 +102,6 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
   const renderElement = () => {
     const commonProps = {
       onClick: handleClick,
-      onMouseEnter: () => setIsHovered(true),
-      onMouseLeave: () => setIsHovered(false),
       className: `relative transition-all ${
         isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-blue-300'
       }`,
@@ -135,7 +128,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               onSelect={() => {}}
               onUpdateContent={onUpdateContent}
             />
-            {isSelected && isHovered && (
+            {isSelected && (
               <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Button • Double-click text to edit
               </div>
@@ -158,7 +151,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               }}
               readOnly
             />
-            {isSelected && isHovered && (
+            {isSelected && (
               <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Input Field
               </div>
@@ -175,7 +168,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               style={element.styles}
               className="max-w-full h-auto"
             />
-            {isSelected && isHovered && (
+            {isSelected && (
               <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 Image • Edit URL in properties
               </div>
@@ -216,7 +209,7 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               </div>
             )}
 
-            {isSelected && isHovered && (
+            {isSelected && (
               <div className="absolute -top-6 -left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded z-10 pointer-events-none">
                 {element.type === 'flex' ? 'Flex Container' : 'Container'}
               </div>
