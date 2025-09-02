@@ -133,17 +133,31 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
         return (
           <div {...commonProps}>
             <input
-              type="text"
-              placeholder={element.content || 'Enter text...'}
+              type={element.inputType || 'text'}
+              placeholder={element.placeholder || 'Enter text...'}
+              required={element.required || false}
+              disabled={element.disabled || false}
+              maxLength={element.maxLength}
+              minLength={element.minLength}
               style={{ 
                 ...element.styles, 
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                width: '100%'
+                width: '100%',
+                opacity: element.disabled ? 0.6 : 1,
+                cursor: element.disabled ? 'not-allowed' : 'text'
               }}
-              readOnly
+              onChange={() => {}} // Preview mode - no actual functionality
             />
+            {element.required && (
+              <span 
+                className="absolute top-0 right-2 text-red-500 text-sm font-bold"
+                title="Required field"
+              >
+                *
+              </span>
+            )}
           </div>
         )
 
