@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Eye, Code, Copy, Download, Save, Settings } from 'lucide-react'
+import { Copy, Download, Save, Settings } from 'lucide-react'
 import { VisualCanvas } from './VisualCanvas'
-import { CodeGenerator, ComponentCodeGenerator } from './CodeGenerator'
+import { ComponentCodeGenerator } from './CodeGenerator'
 import { PropertyPanel } from './PropertyPanel'
 import { ExportPanel } from './ExportPanel'
 import { ElementToolbar } from './ElementToolbar'
@@ -49,7 +49,7 @@ export function VisualComponentBuilder({
   )
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [showExportPanel, setShowExportPanel] = useState(false)
-  const [activePanel, setActivePanel] = useState<'properties' | 'code' | 'export'>('properties')
+  const [activePanel, setActivePanel] = useState<'properties'>('properties')
 
   // Update component when initialComponent changes (for editing existing components)
   useEffect(() => {
@@ -214,56 +214,29 @@ export function VisualComponentBuilder({
           </div>
         </div>
 
-        {/* Right Side: Properties & Code */}
+        {/* Right Side: Properties */}
         <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
-          {/* Panel Tabs */}
-          <div className="border-b border-gray-200 p-2">
-            <div className="flex space-x-1">
-              <button
-                onClick={() => setActivePanel('properties')}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activePanel === 'properties'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Properties
-              </button>
-              
-              <button
-                onClick={() => setActivePanel('code')}
-                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activePanel === 'code'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Code className="w-4 h-4 mr-2" />
-                Generated Code
-              </button>
+          {/* Panel Header */}
+          <div className="border-b border-gray-200 px-4 py-3">
+            <div className="flex items-center space-x-2">
+              <Settings className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-medium text-gray-900">Properties Panel</h3>
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Select an element to edit its properties
+            </p>
           </div>
 
           {/* Panel Content */}
           <div className="flex-1 overflow-auto">
-            {activePanel === 'properties' && (
-              <PropertyPanel
-                selectedElement={selectedElement}
-                component={component}
-                onUpdateElementStyles={updateElementStyles}
-                onUpdateElementContent={updateElementContent}
-                onUpdateElement={updateElement}
-                onUpdateComponent={setComponent}
-              />
-            )}
-            
-            {activePanel === 'code' && (
-              <CodeGenerator
-                component={component}
-                onCopyCode={handleCopyCode}
-              />
-            )}
+            <PropertyPanel
+              selectedElement={selectedElement}
+              component={component}
+              onUpdateElementStyles={updateElementStyles}
+              onUpdateElementContent={updateElementContent}
+              onUpdateElement={updateElement}
+              onUpdateComponent={setComponent}
+            />
           </div>
         </div>
       </div>

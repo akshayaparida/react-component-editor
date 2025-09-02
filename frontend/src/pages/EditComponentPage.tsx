@@ -10,55 +10,72 @@ import { ComponentPreview } from '../components/editor/ComponentPreview'
 import { VisualComponentBuilder } from '../components/visual-editor/VisualComponentBuilder'
 import { ComponentState, ComponentElement } from '../components/visual-editor/types'
 
-// Helper function to convert JSX/CSS back to ComponentState for Visual Editor
+// Enhanced JSX parser to handle complex nested structures
 function parseJSXToComponentState(jsxCode: string, cssCode: string, componentName?: string): ComponentState {
   try {
-    console.log('Parsing JSX to ComponentState:')
+    console.log('🚀 Enhanced JSX Parser - Starting...')
     console.log('JSX Code:', jsxCode)
     console.log('CSS Code:', cssCode)
     
-    // This is a simplified parser - in a real app you'd want a more robust JSX parser
-    // For now, we'll create a basic structure that works with most simple components
-    
     const elements: ComponentElement[] = []
     
-    // Find all JSX elements with their positions to preserve order
-    const elementRegex = /<(button|div|input|img)[^>]*(?:\/?>|>.*?<\/\1>)/gs
-    const elementMatches: Array<{ match: string; index: number; type: string }> = []
+    // Extract the main JSX return statement
+    const returnMatch = jsxCode.match(/return\s*\([\s\S]*?\)\s*[;}]/)
+    if (!returnMatch) {
+      console.warn('No return statement found, using full JSX')
+    }
+    
+    const jsxContent = returnMatch ? returnMatch[0] : jsxCode
+    console.log('Extracted JSX content:', jsxContent)
+    
+    // Enhanced regex to capture nested elements with better matching
+    const elementRegex = /<(div|button|input|img|h[1-6]|p|span|label)[^>]*(?:\/>|>[\s\S]*?<\/\1>)/gs
+    const elementMatches: Array<{ match: string; index: number; type: string; depth: number }> = []
     
     let match
-    while ((match = elementRegex.exec(jsxCode)) !== null) {
+    while ((match = elementRegex.exec(jsxContent)) !== null) {
+      // Calculate nesting depth by counting opening tags before this match
+      const beforeMatch = jsxContent.substring(0, match.index)
+      const openTags = (beforeMatch.match(/<(?!\/)\w+/g) || []).length
+      const closeTags = (beforeMatch.match(/<\/\w+>/g) || []).length
+      const depth = openTags - closeTags
+      
       elementMatches.push({
         match: match[0],
         index: match.index,
-        type: match[1]
+        type: match[1],
+        depth: Math.max(0, depth)
       })
     }
     
-    console.log('Found element matches:', elementMatches)
+    console.log('🔍 Found element matches:', elementMatches)
     
     // Sort by position to maintain original order
     elementMatches.sort((a, b) => a.index - b.index)
     
     // Process each element in order
     elementMatches.forEach((elementMatch, index) => {
-      const { match: elementStr, type } = elementMatch
+      const { match: elementStr, type, depth } = elementMatch
       const styles = extractInlineStyles(elementStr)
+      const attributes = extractAttributes(elementStr)
+      
+      console.log(`Processing ${type} element:`, { elementStr: elementStr.substring(0, 100), styles, attributes })
       
       switch (type) {
         case 'button':
-          const buttonContent = elementStr.match(/>([^<]*)</)?.[1] || 'Button'
+          const buttonContent = extractTextContent(elementStr) || 'Button'
           elements.push({
-            id: `button-${index}`,
+            id: `button-${index}-${Date.now()}`,
             type: 'button',
-            content: buttonContent,
+            content: buttonContent.trim(),
             styles: {
-              padding: '8px 16px',
+              padding: '12px 24px',
               backgroundColor: '#3b82f6',
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
-              fontSize: '14px',
+              fontSize: '16px',
+              fontWeight: '600',
               cursor: 'pointer',
               ...styles
             },
@@ -66,40 +83,50 @@ function parseJSXToComponentState(jsxCode: string, cssCode: string, componentNam
           })
           break
           
-        case 'div':
-          const divContent = elementStr.match(/>([^<]*)</)?.[1] || ''
-          // Skip if it's likely a wrapper div or empty
-          if (divContent.trim() && !divContent.includes('<')) {
-            elements.push({
-              id: `div-${index}`,
-              type: 'div',
-              content: divContent,
-              styles: {
-                padding: '16px',
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '16px',
-                color: '#374151',
-                ...styles
-              },
-              children: []
-            })
-          }
-          break
-          
         case 'input':
-          const placeholder = elementStr.match(/placeholder=["']([^"']*)["']/)?.[1] || ''
+          const inputType = attributes.type || 'text'
+          const placeholder = attributes.placeholder || ''
+          const required = attributes.hasOwnProperty('required')
+          const disabled = attributes.hasOwnProperty('disabled')
+          
           elements.push({
-            id: `input-${index}`,
+            id: `input-${index}-${Date.now()}`,
             type: 'input',
-            content: placeholder,
+            content: '',
+            placeholder: placeholder,
+            inputType: inputType as any,
+            required: required,
+            disabled: disabled,
             styles: {
-              padding: '8px 12px',
+              padding: '12px',
               border: '1px solid #d1d5db',
               borderRadius: '6px',
               fontSize: '14px',
-              width: '200px',
+              width: '100%',
+              backgroundColor: '#ffffff',
+              color: '#374151',
+              ...styles
+            },
+            children: []
+          })
+          break
+          
+        case 'div':
+          const divContent = extractTextContent(elementStr)
+          const hasFlexDisplay = styles.display === 'flex' || elementStr.includes('display: \'flex\'') || elementStr.includes('display: "flex"')
+          
+          // Determine if it's a container or flex container
+          const elementType = hasFlexDisplay ? 'flex' : 'container'
+          
+          elements.push({
+            id: `${elementType}-${index}-${Date.now()}`,
+            type: elementType as any,
+            content: divContent && divContent.trim() ? divContent.trim() : '',
+            styles: {
+              padding: '16px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
               ...styles
             },
             children: []
@@ -107,9 +134,10 @@ function parseJSXToComponentState(jsxCode: string, cssCode: string, componentNam
           break
           
         case 'img':
-          const src = elementStr.match(/src=["']([^"']*)["']/)?.[1] || ''
+          const src = attributes.src || ''
+          const alt = attributes.alt || ''
           elements.push({
-            id: `image-${index}`,
+            id: `image-${index}-${Date.now()}`,
             type: 'image',
             content: src,
             styles: {
@@ -122,6 +150,34 @@ function parseJSXToComponentState(jsxCode: string, cssCode: string, componentNam
             children: []
           })
           break
+          
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+        case 'p':
+        case 'span':
+        case 'label':
+          const textContent = extractTextContent(elementStr) || `${type.toUpperCase()} text`
+          elements.push({
+            id: `text-${index}-${Date.now()}`,
+            type: 'text',
+            content: textContent.trim(),
+            styles: {
+              fontSize: type.startsWith('h') ? '18px' : '14px',
+              fontWeight: type.startsWith('h') ? '600' : '400',
+              color: '#374151',
+              fontFamily: 'Inter, sans-serif',
+              ...styles
+            },
+            children: []
+          })
+          break
+          
+        default:
+          console.log(`Unhandled element type: ${type}`)
       }
     })
     
@@ -184,28 +240,93 @@ function parseJSXToComponentState(jsxCode: string, cssCode: string, componentNam
   }
 }
 
-// Helper to extract inline styles from JSX elements
+// Helper to extract attributes from JSX elements
+function extractAttributes(jsxElement: string): Record<string, string> {
+  const attributes: Record<string, string> = {}
+  
+  // Match all attributes: name="value" or name='value' or name={value} or just name (boolean)
+  const attrRegex = /(\w+)(?:=(["'])(.*?)\2|=\{([^}]*)\})?/g
+  let match
+  
+  while ((match = attrRegex.exec(jsxElement)) !== null) {
+    const [, name, , quotedValue, bracedValue] = match
+    if (quotedValue !== undefined) {
+      attributes[name] = quotedValue
+    } else if (bracedValue !== undefined) {
+      attributes[name] = bracedValue.replace(/["']/g, '')
+    } else {
+      // Boolean attribute (like required, disabled)
+      attributes[name] = 'true'
+    }
+  }
+  
+  return attributes
+}
+
+// Helper to extract text content from JSX elements
+function extractTextContent(jsxElement: string): string | null {
+  // Handle self-closing tags
+  if (jsxElement.includes('/>')) {
+    return null
+  }
+  
+  // Find content between opening and closing tags
+  const contentMatch = jsxElement.match(/>([^<]*)</)
+  if (contentMatch && contentMatch[1]) {
+    return contentMatch[1].trim()
+  }
+  
+  // Handle more complex content (might contain nested elements)
+  const tagMatch = jsxElement.match(/<(\w+)[^>]*>([\s\S]*)<\/\1>/)
+  if (tagMatch && tagMatch[2]) {
+    const content = tagMatch[2].trim()
+    // If content contains HTML tags, extract just the text
+    if (content.includes('<')) {
+      const textOnly = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      return textOnly || null
+    }
+    return content || null
+  }
+  
+  return null
+}
+
+// Enhanced helper to extract inline styles from JSX elements
 function extractInlineStyles(jsxElement: string): React.CSSProperties {
   const styles: React.CSSProperties = {}
   
-  // Match style={{...}} pattern
-  const styleMatch = jsxElement.match(/style={{([^}]*)}}/)
+  // Match style={{...}} pattern - handle nested braces better
+  const styleMatch = jsxElement.match(/style=\{\{([^}]*(?:\}[^}]*)*?)\}\}/)
   if (styleMatch) {
     const styleString = styleMatch[1]
-    // Parse simple CSS properties (this is basic - could be enhanced)
+    console.log('Parsing styles:', styleString)
+    
+    // Split by comma, but handle nested objects and functions
     const properties = styleString.split(',')
     properties.forEach(prop => {
-      const [key, value] = prop.split(':').map(s => s.trim())
-      if (key && value) {
-        // Convert CSS property names to camelCase
-        const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-        // Remove quotes from values
-        const cleanValue = value.replace(/["']/g, '')
-        styles[camelKey as keyof React.CSSProperties] = cleanValue
+      const colonIndex = prop.indexOf(':')
+      if (colonIndex > 0) {
+        const key = prop.substring(0, colonIndex).trim()
+        const value = prop.substring(colonIndex + 1).trim()
+        
+        if (key && value) {
+          // Clean key: remove quotes and convert to camelCase
+          const cleanKey = key.replace(/["']/g, '').replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+          // Clean value: remove quotes and handle different value types
+          let cleanValue = value.replace(/["']/g, '')
+          
+          // Handle special cases
+          if (cleanValue === 'true') cleanValue = true as any
+          else if (cleanValue === 'false') cleanValue = false as any
+          else if (/^\d+$/.test(cleanValue)) cleanValue = parseInt(cleanValue) as any
+          
+          styles[cleanKey as keyof React.CSSProperties] = cleanValue
+        }
       }
     })
   }
   
+  console.log('Extracted styles:', styles)
   return styles
 }
 
