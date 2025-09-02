@@ -141,7 +141,8 @@ export function PropertyPanel({
     spacing: false,
     background: false,
     border: false,
-    layout: false
+    layout: false,
+    flexbox: false
   })
 
   const selectedElementData = selectedElement 
@@ -498,23 +499,118 @@ export function PropertyPanel({
           />
         </div>
 
-        {elementStyles.display === 'flex' && (
-          <>
+      </StyleCategory>
+
+      {/* Flexbox Properties - Show for flex containers and flex-type elements */}
+      {(selectedElementData.type === 'flex' || elementStyles.display === 'flex') && (
+        <StyleCategory
+          title="Flexbox Properties"
+          icon={Layout}
+          isOpen={openCategories.flexbox}
+          onToggle={() => toggleCategory('flexbox')}
+        >
+          <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <h5 className="text-xs font-medium text-purple-800 mb-2 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              Flex Container Controls
+            </h5>
+            <p className="text-xs text-purple-700">
+              Configure how child elements are arranged and aligned
+            </p>
+          </div>
+          
+          <SelectInput
+            label="Flex Direction"
+            value={elementStyles.flexDirection as string}
+            onChange={(value) => handleStyleChange('flexDirection', value)}
+            options={['row', 'column', 'row-reverse', 'column-reverse']}
+          />
+          
+          <div className="grid grid-cols-1 gap-3">
             <SelectInput
-              label="Justify Content"
+              label="Justify Content (Main Axis)"
               value={elementStyles.justifyContent as string}
               onChange={(value) => handleStyleChange('justifyContent', value)}
-              options={['flex-start', 'center', 'flex-end', 'space-between', 'space-around']}
+              options={['flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly']}
             />
             <SelectInput
-              label="Align Items"
+              label="Align Items (Cross Axis)"
               value={elementStyles.alignItems as string}
               onChange={(value) => handleStyleChange('alignItems', value)}
               options={['flex-start', 'center', 'flex-end', 'stretch', 'baseline']}
             />
-          </>
-        )}
-      </StyleCategory>
+          </div>
+          
+          <SelectInput
+            label="Flex Wrap"
+            value={elementStyles.flexWrap as string}
+            onChange={(value) => handleStyleChange('flexWrap', value)}
+            options={['nowrap', 'wrap', 'wrap-reverse']}
+          />
+          
+          <div className="grid grid-cols-2 gap-3">
+            <SizeInput
+              label="Gap"
+              value={elementStyles.gap as string}
+              onChange={(value) => handleStyleChange('gap', value)}
+              unit="px"
+            />
+            <SelectInput
+              label="Align Content"
+              value={elementStyles.alignContent as string}
+              onChange={(value) => handleStyleChange('alignContent', value)}
+              options={['flex-start', 'center', 'flex-end', 'stretch', 'space-between', 'space-around']}
+            />
+          </div>
+          
+          {/* Quick Flex Presets */}
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <h6 className="text-xs font-medium text-gray-700 mb-2">Quick Flex Layouts</h6>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  handleStyleChange('display', 'flex')
+                  handleStyleChange('justifyContent', 'center')
+                  handleStyleChange('alignItems', 'center')
+                }}
+                className="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
+              >
+                Center All
+              </button>
+              <button
+                onClick={() => {
+                  handleStyleChange('display', 'flex')
+                  handleStyleChange('justifyContent', 'space-between')
+                  handleStyleChange('alignItems', 'center')
+                }}
+                className="px-2 py-1 text-xs bg-indigo-500 text-white rounded hover:bg-indigo-600"
+              >
+                Space Between
+              </button>
+              <button
+                onClick={() => {
+                  handleStyleChange('display', 'flex')
+                  handleStyleChange('flexDirection', 'column')
+                  handleStyleChange('gap', '12px')
+                }}
+                className="px-2 py-1 text-xs bg-cyan-500 text-white rounded hover:bg-cyan-600"
+              >
+                Column Stack
+              </button>
+              <button
+                onClick={() => {
+                  handleStyleChange('display', 'flex')
+                  handleStyleChange('flexWrap', 'wrap')
+                  handleStyleChange('gap', '8px')
+                }}
+                className="px-2 py-1 text-xs bg-teal-500 text-white rounded hover:bg-teal-600"
+              >
+                Wrap Grid
+              </button>
+            </div>
+          </div>
+        </StyleCategory>
+      )}
 
       {/* Quick Actions */}
       <div className="mt-6 p-3 bg-gray-50 rounded-lg">
