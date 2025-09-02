@@ -7,6 +7,7 @@ interface PropertyPanelProps {
   component: ComponentState
   onUpdateElementStyles: (elementId: string, styles: React.CSSProperties) => void
   onUpdateElementContent: (elementId: string, content: string) => void
+  onUpdateElement: (elementId: string, updates: Partial<ComponentElement>) => void
   onUpdateComponent: (component: ComponentState) => void
 }
 
@@ -132,6 +133,7 @@ export function PropertyPanel({
   component,
   onUpdateElementStyles,
   onUpdateElementContent,
+  onUpdateElement,
   onUpdateComponent
 }: PropertyPanelProps) {
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
@@ -161,6 +163,12 @@ export function PropertyPanel({
       onUpdateElementContent(selectedElement, content)
     }
   }, [selectedElement, onUpdateElementContent])
+
+  const handleInputPropertyChange = useCallback((property: string, value: any) => {
+    if (selectedElement) {
+      onUpdateElement(selectedElement, { [property]: value })
+    }
+  }, [selectedElement, onUpdateElement])
 
   if (!selectedElement || !selectedElementData) {
     return (
@@ -254,6 +262,98 @@ export function PropertyPanel({
             <p className="text-xs text-gray-500 mt-1">
               💡 Paste any image URL from Unsplash, your CDN, or web hosting
             </p>
+          </div>
+        )}
+
+        {/* Input-specific Properties */}
+        {selectedElementData.type === 'input' && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="text-xs font-medium text-green-800 mb-3 flex items-center">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+              Input Properties
+            </h4>
+            
+            <div className="space-y-3">
+              <SelectInput
+                label="Input Type"
+                value={selectedElementData.inputType || 'text'}
+                onChange={(value) => handleInputPropertyChange('inputType', value)}
+                options={['text', 'email', 'password', 'number', 'tel', 'url', 'search', 'date', 'time']}
+              />
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Placeholder Text
+                </label>
+                <input
+                  type="text"
+                  value={selectedElementData.placeholder || ''}
+                  onChange={(e) => handleInputPropertyChange('placeholder', e.target.value)}
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter placeholder text..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="flex items-center text-xs font-medium text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedElementData.required || false}
+                      onChange={(e) => handleInputPropertyChange('required', e.target.checked)}
+                      className="mr-2 w-3 h-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    Required Field
+                  </label>
+                </div>
+                
+                <div>
+                  <label className="flex items-center text-xs font-medium text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedElementData.disabled || false}
+                      onChange={(e) => handleInputPropertyChange('disabled', e.target.checked)}
+                      className="mr-2 w-3 h-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    Disabled
+                  </label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Min Length
+                  </label>
+                  <input
+                    type="number"
+                    value={selectedElementData.minLength || ''}
+                    onChange={(e) => handleInputPropertyChange('minLength', e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="0"
+                    placeholder="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Max Length
+                  </label>
+                  <input
+                    type="number"
+                    value={selectedElementData.maxLength || ''}
+                    onChange={(e) => handleInputPropertyChange('maxLength', e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="1"
+                    placeholder="No limit"
+                  />
+                </div>
+              </div>
+              
+              <p className="text-xs text-green-700">
+                💡 Configure input behavior and validation rules
+              </p>
+            </div>
           </div>
         )}
       </div>
