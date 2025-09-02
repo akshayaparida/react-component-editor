@@ -49,7 +49,6 @@ export function VisualComponentBuilder({
   )
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [showExportPanel, setShowExportPanel] = useState(false)
-  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview')
   const [showProperties, setShowProperties] = useState(false)
 
   // Update component when initialComponent changes (for editing existing components)
@@ -60,14 +59,14 @@ export function VisualComponentBuilder({
     }
   }, [initialComponent])
 
-  // Show properties when an element is selected in preview mode
+  // Show properties when an element is selected
   useEffect(() => {
-    if (selectedElement && activeTab === 'preview') {
+    if (selectedElement) {
       setShowProperties(true)
     } else {
       setShowProperties(false)
     }
-  }, [selectedElement, activeTab])
+  }, [selectedElement])
 
   // Update element in component state
   const updateElement = useCallback((elementId: string, updates: Partial<ComponentElement>) => {
@@ -147,25 +146,9 @@ export function VisualComponentBuilder({
   // Handle element selection
   const handleSelectElement = useCallback((elementId: string | null) => {
     setSelectedElement(elementId)
-    if (elementId && activeTab === 'preview') {
+    if (elementId) {
       setShowProperties(true)
     }
-  }, [activeTab])
-
-  // Handle tab change
-  const handleTabChange = useCallback((tab: 'preview' | 'code') => {
-    setActiveTab(tab)
-    if (tab === 'code') {
-      setShowProperties(false)
-      setSelectedElement(null)
-    }
-  }, [])
-
-  // Go back to code view from properties
-  const goToCodeView = useCallback(() => {
-    setActiveTab('code')
-    setShowProperties(false)
-    setSelectedElement(null)
   }, [])
 
   // Handle save
@@ -226,49 +209,34 @@ export function VisualComponentBuilder({
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 px-6">
-        <nav className="flex space-x-1">
-          <button
-            onClick={() => handleTabChange('preview')}
-            className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'preview'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Preview
-          </button>
-          <button
-            onClick={() => handleTabChange('code')}
-            className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'code'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Code className="w-4 h-4 mr-2" />
-            Code
-          </button>
-        </nav>
-      </div>
-
-      {/* Main Content */}
+      {/* Main Content - Split View */}
       <div className="flex-1 flex overflow-hidden">
-        {activeTab === 'preview' ? (
-          <>
-            {/* Left Side: Visual Builder */}
-            <div className={`${showProperties ? 'flex-1' : 'w-full'} flex flex-col transition-all duration-300`}>
-              {/* Element Toolbar */}
-              <ElementToolbar 
-                onAddElement={addElement}
-                selectedElement={selectedElement}
-                onRemoveElement={removeElement}
-              />
+        {/* Left Side: Visual Builder */}
+        <div className={`${showProperties ? 'flex-1' : 'flex-1'} flex flex-col`}>
+          {/* Element Toolbar */}
+          <ElementToolbar 
+            onAddElement={addElement}
+            selectedElement={selectedElement}
+            onRemoveElement={removeElement}
+          />
+          
+          {/* Split Pane Container */}
+          <div className="flex-1 flex">
+            {/* Preview Pane */}
+            <div className="flex-1 flex flex-col border-r border-gray-200">
+              {/* Preview Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center space-x-2">
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-medium text-gray-900">Visual Preview</h3>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Click elements to edit properties • Live preview updates
+                </p>
+              </div>
               
               {/* Visual Canvas */}
-              <div className="flex-1 p-6 overflow-auto">
+              <div className="flex-1 p-6 overflow-auto bg-white">
                 <VisualCanvas
                   component={component}
                   selectedElement={selectedElement}
@@ -279,73 +247,61 @@ export function VisualComponentBuilder({
               </div>
             </div>
 
-            {/* Right Side: Properties (only when element selected) */}
-            {showProperties && (
-              <div className="w-96 bg-white border-l border-gray-200 flex flex-col transition-all duration-300">
-                {/* Panel Header */}
-                <div className="border-b border-gray-200 px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Settings className="w-4 h-4 text-blue-600" />
-                      <h3 className="text-sm font-medium text-gray-900">Properties Panel</h3>
-                    </div>
-                    <button
-                      onClick={goToCodeView}
-                      className="flex items-center px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    >
-                      <Code className="w-3 h-3 mr-1" />
-                      View Code
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Editing properties for selected element
-                  </p>
+            {/* Code Pane */}
+            <div className="flex-1 flex flex-col">
+              {/* Code Header */}
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center space-x-2">
+                  <Code className="w-4 h-4 text-gray-700" />
+                  <h3 className="text-sm font-medium text-gray-900">Generated Code</h3>
                 </div>
-
-                {/* Panel Content */}
-                <div className="flex-1 overflow-auto">
-                  <PropertyPanel
-                    selectedElement={selectedElement}
-                    component={component}
-                    onUpdateElementStyles={updateElementStyles}
-                    onUpdateElementContent={updateElementContent}
-                    onUpdateElement={updateElement}
-                    onUpdateComponent={setComponent}
-                  />
-                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  Live-updating React component • Copy or export when ready
+                </p>
               </div>
-            )}
-          </>
-        ) : (
-          /* Code View */
-          <div className="w-full flex flex-col">
-            {/* Code Header */}
-            <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Code className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Generated Component Code</h3>
-                    <p className="text-sm text-gray-600">Live-generated React component from your visual design</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTabChange('preview')}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Preview
-                </button>
+              
+              {/* Code Content */}
+              <div className="flex-1 overflow-hidden">
+                <CodeGenerator
+                  component={component}
+                  onCopyCode={handleCopyCode}
+                />
               </div>
             </div>
-            
-            {/* Code Content */}
-            <div className="flex-1 overflow-hidden">
-              <CodeGenerator
+          </div>
+        </div>
+
+        {/* Right Side: Properties Panel (when element selected) */}
+        {showProperties && (
+          <div className="w-80 bg-white border-l border-gray-200 flex flex-col transition-all duration-300">
+            {/* Panel Header */}
+            <div className="border-b border-gray-200 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Settings className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-medium text-gray-900">Properties</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedElement(null)}
+                  className="flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Editing selected element properties
+              </p>
+            </div>
+
+            {/* Panel Content */}
+            <div className="flex-1 overflow-auto">
+              <PropertyPanel
+                selectedElement={selectedElement}
                 component={component}
-                onCopyCode={handleCopyCode}
+                onUpdateElementStyles={updateElementStyles}
+                onUpdateElementContent={updateElementContent}
+                onUpdateElement={updateElement}
+                onUpdateComponent={setComponent}
               />
             </div>
           </div>
