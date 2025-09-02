@@ -83,11 +83,13 @@ function EditableText({ element, isSelected, onSelect, onUpdateContent }: Editab
 interface VisualElementProps {
   element: ComponentElement
   isSelected: boolean
+  selectedElement: string | null
   onSelect: () => void
+  onSelectElement: (elementId: string | null) => void
   onUpdateContent: (content: string) => void
 }
 
-function VisualElement({ element, isSelected, onSelect, onUpdateContent }: VisualElementProps) {
+function VisualElement({ element, isSelected, selectedElement, onSelect, onSelectElement, onUpdateContent }: VisualElementProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     onSelect()
@@ -206,9 +208,11 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
               <VisualElement
                 key={child.id}
                 element={child}
-                isSelected={false}
-                onSelect={() => {}}
-                onUpdateContent={() => {}}
+                isSelected={selectedElement === child.id}
+                selectedElement={selectedElement}
+                onSelect={() => onSelectElement(child.id)}
+                onSelectElement={onSelectElement}
+                onUpdateContent={(content) => onUpdateContent(child.id, content)}
               />
             ))}
 
@@ -229,6 +233,20 @@ function VisualElement({ element, isSelected, onSelect, onUpdateContent }: Visua
       {renderElement()}
     </div>
   )
+}
+
+// Helper function to find element by ID in nested structure
+function findElementById(elements: ComponentElement[], targetId: string): ComponentElement | null {
+  for (const element of elements) {
+    if (element.id === targetId) {
+      return element
+    }
+    if (element.children && element.children.length > 0) {
+      const found = findElementById(element.children, targetId)
+      if (found) return found
+    }
+  }
+  return null
 }
 
 export function VisualCanvas({
@@ -280,7 +298,9 @@ export function VisualCanvas({
             key={element.id}
             element={element}
             isSelected={selectedElement === element.id}
+            selectedElement={selectedElement}
             onSelect={() => onSelectElement(element.id)}
+            onSelectElement={onSelectElement}
             onUpdateContent={(content) => onUpdateContent(element.id, content)}
           />
         ))}
@@ -300,14 +320,19 @@ export function VisualCanvas({
       </div>
 
       {/* Selection Info */}
-      {selectedElement && (
-        <div className="border-t border-gray-200 px-4 py-2 bg-blue-50">
-          <div className="text-xs text-blue-700">
-            Selected: {component.elements.find(el => el.id === selectedElement)?.type} element
-            • Edit properties in the panel →
+      {selectedElement && (() => {
+        const selectedElementData = findElementById(component.elements, selectedElement)
+        return (
+          <div className="border-t border-gray-200 px-4 py-2 bg-blue-50">
+            <div className="text-xs text-blue-700">
+              Selected: {selectedElementData?.type || 'unknown'} element
+              {selectedElementData?.type === 'container' && ' (container)'}
+              {selectedElementData?.type === 'flex' && ' (flex container)'}
+              • Edit properties in the panel →
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
