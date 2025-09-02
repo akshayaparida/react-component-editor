@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Copy, Download, Save, Settings, Eye, Code, ArrowLeft } from 'lucide-react'
 import { VisualCanvas } from './VisualCanvas'
-import { CodeGenerator, ComponentCodeGenerator } from './CodeGenerator'
+import { SourceCodeEditor } from './SourceCodeEditor'
 import { PropertyPanel } from './PropertyPanel'
 import { ExportPanel } from './ExportPanel'
-import { ElementToolbar } from './ElementToolbar'
 import { ComponentElement, ComponentState } from './types'
 import toast from 'react-hot-toast'
 
@@ -96,52 +95,7 @@ export function VisualComponentBuilder({
     updateElement(elementId, { content })
   }, [updateElement])
 
-  // Add new element
-  const addElement = useCallback((type: ComponentElement['type']) => {
-    const newElement: ComponentElement = {
-      id: `element-${Date.now()}`,
-      type,
-      content: type === 'text' ? 'New text element' : type === 'button' ? 'Button' : type === 'input' ? '' : 'New element',
-      styles: {
-        padding: '8px 16px',
-        margin: '8px 0',
-        backgroundColor: type === 'button' ? '#3b82f6' : type === 'input' ? '#ffffff' : '#ffffff',
-        color: type === 'button' ? '#ffffff' : '#374151',
-        border: '1px solid #e5e7eb',
-        borderRadius: '6px',
-        fontSize: '14px',
-        ...(type === 'input' && { width: '200px' })
-      },
-      children: [],
-      // Add default input properties for input elements
-      ...(type === 'input' && {
-        inputType: 'text' as const,
-        placeholder: 'Enter text...',
-        required: false,
-        disabled: false
-      })
-    }
-
-    setComponent(prev => ({
-      ...prev,
-      elements: [...prev.elements, newElement]
-    }))
-
-    setSelectedElement(newElement.id)
-  }, [])
-
-  // Remove element
-  const removeElement = useCallback((elementId: string) => {
-    setComponent(prev => ({
-      ...prev,
-      elements: prev.elements.filter(el => el.id !== elementId)
-    }))
-    
-    if (selectedElement === elementId) {
-      setSelectedElement(null)
-      setShowProperties(false)
-    }
-  }, [selectedElement])
+  // Elements are managed through code editor now
 
   // Handle element selection
   const handleSelectElement = useCallback((elementId: string | null) => {
@@ -157,38 +111,31 @@ export function VisualComponentBuilder({
     // Note: Toast notification will be shown by parent component
   }, [component, onSave])
 
-  // Generate and copy code
-  const handleCopyCode = useCallback(async () => {
-    try {
-      const codeGenerator = new ComponentCodeGenerator(component)
-      const code = codeGenerator.generateReactComponent()
-      await navigator.clipboard.writeText(code)
-      toast.success('Component code copied to clipboard!')
-    } catch (error) {
-      toast.error('Failed to copy code')
-    }
-  }, [component])
+  // Handle code changes from source editor
+  const handleCodeChange = useCallback((code: string) => {
+    // Optional: sync code changes back to component state if needed
+    console.log('Code changed:', code)
+  }, [])
+
+  // Handle code save from source editor
+  const handleCodeSave = useCallback((code: string) => {
+    // Optional: process saved code
+    console.log('Code saved:', code)
+    toast.success('Source code saved successfully!')
+  }, [])
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-gray-900">Visual Component Builder</h1>
-          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-            No-Code
+          <h1 className="text-xl font-semibold text-gray-900">Visual Component Editor</h1>
+          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+            Code + Visual
           </span>
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={handleCopyCode}
-            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Copy Code
-          </button>
-          
           <button
             onClick={() => setShowExportPanel(true)}
             className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
@@ -213,13 +160,6 @@ export function VisualComponentBuilder({
       <div className="flex-1 flex overflow-hidden">
         {/* Left Side: Visual Builder */}
         <div className={`${showProperties ? 'flex-1' : 'flex-1'} flex flex-col`}>
-          {/* Element Toolbar */}
-          <ElementToolbar 
-            onAddElement={addElement}
-            selectedElement={selectedElement}
-            onRemoveElement={removeElement}
-          />
-          
           {/* Split Pane Container */}
           <div className="flex-1 flex">
             {/* Preview Pane */}
@@ -247,27 +187,16 @@ export function VisualComponentBuilder({
               </div>
             </div>
 
-            {/* Code Pane */}
-            <div className="flex-1 flex flex-col">
-              {/* Code Header */}
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200 px-4 py-3">
-                <div className="flex items-center space-x-2">
-                  <Code className="w-4 h-4 text-gray-700" />
-                  <h3 className="text-sm font-medium text-gray-900">Generated Code</h3>
-                </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  Live-updating React component • Copy or export when ready
-                </p>
-              </div>
-              
-              {/* Code Content */}
-              <div className="flex-1 overflow-hidden">
-                <CodeGenerator
+            {/* Source Code Editor - Hidden when properties panel is open */}
+            {!showProperties && (
+              <div className="flex-1 flex flex-col">
+                <SourceCodeEditor
                   component={component}
-                  onCopyCode={handleCopyCode}
+                  onCodeChange={handleCodeChange}
+                  onSave={handleCodeSave}
                 />
               </div>
-            </div>
+            )}
           </div>
         </div>
 

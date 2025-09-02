@@ -86,7 +86,7 @@ interface VisualElementProps {
   selectedElement: string | null
   onSelect: () => void
   onSelectElement: (elementId: string | null) => void
-  onUpdateContent: (content: string) => void
+  onUpdateContent: (elementId: string, content: string) => void
 }
 
 function VisualElement({ element, isSelected, selectedElement, onSelect, onSelectElement, onUpdateContent }: VisualElementProps) {
@@ -115,7 +115,7 @@ function VisualElement({ element, isSelected, selectedElement, onSelect, onSelec
             element={element}
             isSelected={isSelected}
             onSelect={onSelect}
-            onUpdateContent={onUpdateContent}
+            onUpdateContent={(content) => onUpdateContent(element.id, content)}
           />
         )
 
@@ -126,7 +126,7 @@ function VisualElement({ element, isSelected, selectedElement, onSelect, onSelec
               element={{ ...element, styles: { background: 'transparent', border: 'none', padding: '0' } }}
               isSelected={false}
               onSelect={() => {}}
-              onUpdateContent={onUpdateContent}
+              onUpdateContent={(content) => onUpdateContent(element.id, content)}
             />
           </button>
         )
@@ -199,7 +199,7 @@ function VisualElement({ element, isSelected, selectedElement, onSelect, onSelec
                 element={{ ...element, styles: { background: 'transparent', border: 'none', padding: '0' } }}
                 isSelected={false}
                 onSelect={() => {}}
-                onUpdateContent={onUpdateContent}
+                onUpdateContent={(content) => onUpdateContent(element.id, content)}
               />
             )}
             
@@ -309,10 +309,12 @@ export function VisualCanvas({
         {component.elements.length === 0 && (
           <div className="flex items-center justify-center h-64 text-center">
             <div className="text-gray-400">
-              <div className="text-6xl mb-4">🎨</div>
-              <h3 className="text-lg font-medium mb-2">Start Building</h3>
+              <div className="text-6xl mb-4">📝</div>
+              <h3 className="text-lg font-medium mb-2">Paste Your Component</h3>
               <p className="text-sm">
-                Add elements from the toolbar above to start creating your component
+                Copy and paste your React component code in the editor → 
+                <br />
+                Then visually edit element properties here
               </p>
             </div>
           </div>
