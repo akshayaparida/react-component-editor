@@ -5,6 +5,13 @@ export interface ComponentElement {
   styles: React.CSSProperties
   children: ComponentElement[]
   props?: Record<string, any>
+  // Input-specific properties
+  inputType?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time'
+  placeholder?: string
+  required?: boolean
+  disabled?: boolean
+  maxLength?: number
+  minLength?: number
 }
 
 export interface ComponentState {
@@ -181,7 +188,15 @@ export const VISUAL_EDITOR_TOOLS = [
       border: '1px solid #d1d5db',
       borderRadius: '6px',
       fontSize: '14px',
-      width: '200px'
+      width: '200px',
+      backgroundColor: '#ffffff',
+      color: '#374151'
+    },
+    defaultProps: {
+      inputType: 'text',
+      placeholder: 'Enter text...',
+      required: false,
+      disabled: false
     }
   },
   {
