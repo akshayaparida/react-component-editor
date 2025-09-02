@@ -92,17 +92,25 @@ export function VisualComponentBuilder({
     const newElement: ComponentElement = {
       id: `element-${Date.now()}`,
       type,
-      content: type === 'text' ? 'New text element' : type === 'button' ? 'Button' : 'New element',
+      content: type === 'text' ? 'New text element' : type === 'button' ? 'Button' : type === 'input' ? '' : 'New element',
       styles: {
         padding: '8px 16px',
         margin: '8px 0',
-        backgroundColor: type === 'button' ? '#3b82f6' : '#ffffff',
+        backgroundColor: type === 'button' ? '#3b82f6' : type === 'input' ? '#ffffff' : '#ffffff',
         color: type === 'button' ? '#ffffff' : '#374151',
         border: '1px solid #e5e7eb',
         borderRadius: '6px',
-        fontSize: '14px'
+        fontSize: '14px',
+        ...(type === 'input' && { width: '200px' })
       },
-      children: []
+      children: [],
+      // Add default input properties for input elements
+      ...(type === 'input' && {
+        inputType: 'text' as const,
+        placeholder: 'Enter text...',
+        required: false,
+        disabled: false
+      })
     }
 
     setComponent(prev => ({
@@ -245,6 +253,7 @@ export function VisualComponentBuilder({
                 component={component}
                 onUpdateElementStyles={updateElementStyles}
                 onUpdateElementContent={updateElementContent}
+                onUpdateElement={updateElement}
                 onUpdateComponent={setComponent}
               />
             )}
