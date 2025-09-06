@@ -26,6 +26,10 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
   const mountRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<ReactDOM.Root | null>(null)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  // Track last selected element path for re-selection after re-render
+  const lastSelectedPathRef = useRef<string | null>(null)
+  // Debounce timer for background JSX sync
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Debug selected element changes
   useEffect(() => {
@@ -118,8 +122,14 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
       }
     })
     
-    // 3. Background sync to JSX code (non-blocking)
-    setTimeout(() => {
+    // 3. Background sync to JSX code (non-blocking, debounced)
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current)
+    }
+    // Store the last selected path for re-selection after sync
+    lastSelectedPathRef.current = selectedElement.path
+
+    syncTimerRef.current = setTimeout(() => {
       try {
         const updatedJsxCode = updateJSXProperty(
           jsxCode,
@@ -130,13 +140,13 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
         )
         
         if (updatedJsxCode !== jsxCode) {
-          console.log('[VisualEditor] 📝 Syncing to JSX code in background')
+          console.log('[VisualEditor] 📝 Debounced sync to JSX code')
           onJsxCodeChange(updatedJsxCode)
         }
       } catch (error) {
         console.error('[VisualEditor] Background JSX sync failed:', error)
       }
-    }, 100)
+    }, 600)
   }
 
   // Create selection overlay
@@ -249,6 +259,8 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
         tagName,
         properties
       })
+      // Remember the selected path for re-selection after JSX sync
+      lastSelectedPathRef.current = path
       
       console.log('[VisualEditor] Selected element state should update')
     } else {
@@ -317,6 +329,37 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
       left: computedStyle.left,
       right: computedStyle.right,
       bottom: computedStyle.bottom
+    }
+  }
+
+  // Find element by path inside the mount container
+  const findElementByPath = (container: HTMLElement, path: string): HTMLElement | null => {
+    if (!path) return null
+    const segments = path.split(' > ')
+    let parent: Element | null = container
+    for (const seg of segments) {
+      const m = seg.match(/([a-zA-Z0-9]+)\[(\d+)\]/)
+      if (!m || !parent) return null
+      const index = parseInt(m[2], 10)
+      const next = (parent as HTMLElement).children.item(index)
+      if (!next) return null
+      parent = next
+    }
+    return parent as HTMLElement
+  }
+
+  const reselectLastElement = () => {
+    const path = lastSelectedPathRef.current
+    const container = mountRef.current
+    if (!path || !container) return
+    const el = findElementByPath(container, path)
+    if (el) {
+      setSelectedElement({
+        element: el,
+        path,
+        tagName: el.tagName.toLowerCase(),
+        properties: extractElementProperties(el)
+      })
     }
   }
 
@@ -418,6 +461,16 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
       rootRef.current = root
       root.render(React.createElement(Component))
       setIsLoading(false)
+
+      // After render, attempt to re-select the previously selected element
+      // in the next frame so layout is ready
+      requestAnimationFrame(() => {
+        try {
+          reselectLastElement()
+        } catch (e) {
+          console.warn('[VisualEditor] Reselect after render failed:', e)
+        }
+      })
       
     } catch (err: any) {
       console.error('[VisualEditor] Render error:', err)
@@ -462,12 +515,16 @@ export function VisualEditor({ jsxCode, cssCode, dependencies, onJsxCodeChange }
     }
   }, [isSelectMode])
 
-  // Clean up overlay on unmount
+  // Clean up overlay and timers on unmount
   useEffect(() => {
     return () => {
       if (overlayRef.current) {
         document.body.removeChild(overlayRef.current)
         overlayRef.current = null
+      }
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current)
+        syncTimerRef.current = null
       }
     }
   }, [])
