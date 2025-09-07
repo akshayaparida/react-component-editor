@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Grid, List, Search } from 'lucide-react'
+import { Plus, Grid, List, Search, Palette } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Component, Category } from '@/types'
@@ -46,6 +46,13 @@ export function SimpleDashboard() {
           
           <div className="flex items-center gap-4">
             <button
+              onClick={() => navigate('/visual-editor')}
+              className="flex items-center px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <Palette className="w-4 h-4 mr-2" />
+              Visual Editor
+            </button>
+            <button
               onClick={() => navigate('/create')}
               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -53,12 +60,6 @@ export function SimpleDashboard() {
               Create Component
             </button>
             
-            <button
-              onClick={() => navigate('/marketplace')}
-              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Browse Marketplace
-            </button>
           </div>
         </div>
 
