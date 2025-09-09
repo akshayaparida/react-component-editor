@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { requireAuth } from '../middleware/auth';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -20,8 +21,8 @@ const updateVisualComponentSchema = z.object({
   description: z.string().optional(),
 });
 
-// POST /api/v1/visual-components - Create a new visual component
-router.post('/', async (req: Request, res: Response) => {
+// POST /api/v1/visual-components - Create a new visual component (auth required)
+router.post('/', requireAuth, async (req: Request, res: Response) => {
   try {
     console.log('[Visual Components] Creating new component:', {
       bodySize: JSON.stringify(req.body).length,
@@ -34,20 +35,21 @@ router.post('/', async (req: Request, res: Response) => {
     // Auto-generate name if not provided
     const name = validatedData.name || `Component_${Date.now()}`;
 
-    // Create the component
-    const component = await prisma.visualComponent.create({
+    // Create the component with ownerId
+    const component = await (prisma as any).visualComponent.create({
       data: {
         name,
         jsxCode: validatedData.jsxCode,
         description: validatedData.description,
         framework: validatedData.framework,
         language: validatedData.language,
+        ownerId: (req as any).user.id,
       },
     });
 
     console.log('[Visual Components] Created component:', component.id);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: component,
       message: 'Visual component created successfully',
@@ -66,7 +68,7 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
       message: 'Failed to create visual component',
@@ -75,15 +77,15 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/v1/visual-components/:id - Get a visual component by ID
-router.get('/:id', async (req: Request, res: Response) => {
+// GET /api/v1/visual-components/:id - Get a visual component by ID (auth + ownership required)
+router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
     console.log('[Visual Components] Fetching component:', id);
 
     // Find the component
-    const component = await prisma.visualComponent.findUnique({
+    const component = await (prisma as any).visualComponent.findUnique({
       where: { id },
     });
 
@@ -96,28 +98,38 @@ router.get('/:id', async (req: Request, res: Response) => {
       });
     }
 
-    // Increment view count
-    await prisma.visualComponent.update({
+    // Ownership check
+    if (!component.ownerId || component.ownerId !== (req as any).user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'You do not have access to this component',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Increment view count and return updated doc (handle mock env without Prisma increment)
+    const updatedComponent = await (prisma as any).visualComponent.update({
       where: { id },
-      data: { viewCount: { increment: 1 } },
+      data: { viewCount: (component.viewCount || 0) + 1 },
     });
 
     console.log('[Visual Components] Found component:', {
-      id: component.id,
-      name: component.name,
-      viewCount: component.viewCount + 1
+      id: updatedComponent.id,
+      name: updatedComponent.name,
+      viewCount: updatedComponent.viewCount
     });
 
-    res.json({
+    return res.json({
       success: true,
-      data: component,
+      data: updatedComponent,
       message: 'Visual component retrieved successfully',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('[Visual Components] Get error:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
       message: 'Failed to retrieve visual component',
@@ -126,8 +138,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/v1/visual-components/:id - Update a visual component
-router.put('/:id', async (req: Request, res: Response) => {
+// PUT /api/v1/visual-components/:id - Update a visual component (auth + ownership required)
+router.put('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -139,7 +151,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const validatedData = updateVisualComponentSchema.parse(req.body);
 
     // Check if component exists
-    const existingComponent = await prisma.visualComponent.findUnique({
+    const existingComponent = await (prisma as any).visualComponent.findUnique({
       where: { id },
     });
 
@@ -152,8 +164,18 @@ router.put('/:id', async (req: Request, res: Response) => {
       });
     }
 
+    // Ownership check
+    if (!existingComponent.ownerId || existingComponent.ownerId !== (req as any).user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'You do not have permission to update this component',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Update the component
-    const updatedComponent = await prisma.visualComponent.update({
+    const updatedComponent = await (prisma as any).visualComponent.update({
       where: { id },
       data: {
         ...validatedData,
@@ -163,7 +185,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     console.log('[Visual Components] Updated component:', updatedComponent.id);
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedComponent,
       message: 'Visual component updated successfully',
@@ -182,7 +204,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
       message: 'Failed to update visual component',
@@ -191,28 +213,36 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/v1/visual-components - List recent visual components (for debugging)
-router.get('/', async (req: Request, res: Response) => {
+// GET /api/v1/visual-components - List current user's visual components (auth required)
+router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
-    
-    const components = await prisma.visualComponent.findMany({
-      orderBy: { createdAt: 'desc' },
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 50);
+    const search = (req.query.search as string) || '';
+
+    const where: any = { ownerId: (req as any).user.id };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const components = await (prisma as any).visualComponent.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
       take: limit,
       select: {
         id: true,
         name: true,
         description: true,
-        framework: true,
-        language: true,
         viewCount: true,
         createdAt: true,
         updatedAt: true,
-        // Don't include jsxCode in list view for performance
+        // Do not include jsxCode in list response
       },
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: components,
       pagination: {
@@ -225,7 +255,7 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Visual Components] List error:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
       message: 'Failed to retrieve visual components',
@@ -237,12 +267,12 @@ router.get('/', async (req: Request, res: Response) => {
 // DELETE /api/v1/visual-components/:id - Delete a visual component (for cleanup)
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     console.log('[Visual Components] Deleting component:', id);
 
     // Check if component exists
-    const existingComponent = await prisma.visualComponent.findUnique({
+    const existingComponent = await (prisma as any).visualComponent.findUnique({
       where: { id },
     });
 
@@ -256,13 +286,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 
     // Delete the component
-    await prisma.visualComponent.delete({
+    await (prisma as any).visualComponent.delete({
       where: { id },
     });
 
     console.log('[Visual Components] Deleted component:', id);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Visual component deleted successfully',
       timestamp: new Date().toISOString(),
@@ -270,7 +300,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Visual Components] Delete error:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal Server Error',
       message: 'Failed to delete visual component',
