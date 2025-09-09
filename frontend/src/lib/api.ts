@@ -31,8 +31,19 @@ export const visualComponentsApi = {
     return response.data.data
   },
 
-  list: async (limit = 10) => {
-    const response = await api.get(`/visual-components?limit=${limit}`)
+  list: async (params: number | { limit?: number; search?: string } = 10) => {
+    let limit = 10
+    let search = ''
+    if (typeof params === 'number') {
+      limit = params
+    } else if (typeof params === 'object') {
+      limit = params.limit ?? 50
+      search = params.search ?? ''
+    }
+    const qs = new URLSearchParams()
+    qs.set('limit', String(limit))
+    if (search) qs.set('search', search)
+    const response = await api.get(`/visual-components?${qs.toString()}`)
     return response.data.data
   }
 }
