@@ -1,30 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { User, ChevronDown, Settings, LogOut, Home, Plus, Store } from 'lucide-react'
+import { User, ChevronDown, Settings, LogOut, Home } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useAuth } from '@/contexts/AuthContext'
+// import { useAuth } from '@/hooks/useAuth'
 
 interface AppHeaderProps {
   title?: string
-  showCreateButton?: boolean
   children?: React.ReactNode
 }
 
-export function AppHeader({ title = 'Component Dashboard', showCreateButton = true, children }: AppHeaderProps) {
+export function AppHeader({ title = 'Component Dashboard', children }: AppHeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  // const { user, setUser } = useAuth()
+  const user = { name: 'Demo User' } // Mock user for demo
 
-  // Fetch user profile for header display
-  const { data: profile } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: async () => {
-      const response = await api.get('/auth/me')
-      return response.data.data
-    },
-  })
+  // Mock profile for demo
+  const profile = {
+    name: 'Demo User',
+    username: 'demo',
+    email: 'demo@example.com'
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -44,8 +42,8 @@ export function AppHeader({ title = 'Component Dashboard', showCreateButton = tr
   }, [isProfileOpen])
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    // No auth needed for demo
+    navigate('/')
   }
 
   return (
@@ -60,13 +58,6 @@ export function AppHeader({ title = 'Component Dashboard', showCreateButton = tr
               <Home className="w-5 h-5 mr-2" />
               <span className="font-medium">Dashboard</span>
             </Link>
-            <Link 
-              to="/marketplace" 
-              className="flex items-center text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <Store className="w-5 h-5 mr-2" />
-              <span className="font-medium">Marketplace</span>
-            </Link>
             <div className="border-l border-gray-300 pl-4">
               <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
             </div>
@@ -75,15 +66,6 @@ export function AppHeader({ title = 'Component Dashboard', showCreateButton = tr
           <div className="flex items-center space-x-4">
             {children}
             
-            {showCreateButton && (
-              <Link
-                to="/components/new"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Component
-              </Link>
-            )}
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -119,25 +101,6 @@ export function AppHeader({ title = 'Component Dashboard', showCreateButton = tr
                     <p className="text-xs text-gray-500">{profile?.email}</p>
                   </div>
 
-                  {/* Menu Items */}
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsProfileOpen(false)}
-                    >
-                      <User className="w-4 h-4 mr-3 text-gray-400" />
-                      View Profile
-                    </Link>
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsProfileOpen(false)}
-                    >
-                      <Settings className="w-4 h-4 mr-3 text-gray-400" />
-                      Account Settings
-                    </Link>
-                  </div>
 
                   <div className="border-t border-gray-100 py-1">
                     <button

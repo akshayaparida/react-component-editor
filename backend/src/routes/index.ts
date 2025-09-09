@@ -3,6 +3,8 @@ import componentsRouter from './components';
 import versionsRouter from './versions';
 import authRouter from './auth';
 import categoriesRouter from './categories';
+import visualComponentsRouter from './visual-components';
+import aliasRouter from './aliases';
 
 const router: Router = Router();
 
@@ -12,6 +14,11 @@ router.use('/auth', authRouter);
 // API Routes
 router.use('/components', componentsRouter);
 router.use('/categories', categoriesRouter);
+router.use('/visual-components', visualComponentsRouter);
+
+// Alias routes to match interview task spec
+// POST /component, GET /preview/:id, PUT /component/:id
+router.use('/', aliasRouter);
 
 // Version routes are nested under components
 router.use('/components', versionsRouter);
@@ -55,6 +62,11 @@ router.get('/', (req, res) => {
           publish: 'PUT /api/v1/components/:componentId/versions/:version/publish',
           delete: 'DELETE /api/v1/components/:componentId/versions/:version',
         },
+      },
+      interview_task_aliases: {
+        create: 'POST /api/v1/component',
+        preview: 'GET /api/v1/preview/:id',
+        update: 'PUT /api/v1/component/:id',
       },
       future_endpoints: {
         users: 'User management system (planned)',

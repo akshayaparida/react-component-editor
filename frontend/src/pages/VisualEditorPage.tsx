@@ -6,6 +6,11 @@ import { visualComponentsApi } from '@/lib/api'
 // @ts-ignore
 import * as Babel from '@babel/standalone'
 
+// Autosave configuration
+const AUTO_SAVE_DEBOUNCE_MS = 1000
+const AUTO_SAVE_BACKOFF_BASE_MS = 1000
+const AUTO_SAVE_BACKOFF_MAX_MS = 30000
+
 // Default component code for demo
 const DEFAULT_COMPONENT = `function MyComponent() {
   return (
@@ -71,11 +76,18 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
   const [isLoading, setIsLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [textDraft, setTextDraft] = useState<string>('')
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle')
   const previewRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<ReactDOM.Root | null>(null)
   const hasAutoSavedRef = useRef(false)
   const lastSelectedIdRef = useRef<string | null>(null)
   const codeRef = useRef<string>('')
+  // Autosave refs
+  const lastSavedCodeRef = useRef<string>('')
+  const inFlightRef = useRef<boolean>(false)
+  const pendingAfterFlightRef = useRef<boolean>(false)
+  const autoSaveTimerRef = useRef<number | null>(null)
+  const backoffMsRef = useRef<number>(AUTO_SAVE_BACKOFF_BASE_MS)
 
   // Load component from URL if ID is provided
   useEffect(() => {
@@ -119,6 +131,9 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       setComponentId(component.id)
       setComponentName(component.name || '')
       setShareUrl(`${window.location.origin}/visual-editor?id=${component.id}`)
+      // Mark current loaded code as saved baseline
+      lastSavedCodeRef.current = component.jsxCode || ''
+      setAutoSaveStatus('saved')
       
       console.log('Loaded component:', component.name)
     } catch (error) {
@@ -146,6 +161,10 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       // Generate share URL
       const newShareUrl = `${window.location.origin}/visual-editor?id=${savedComponent.id}`
       setShareUrl(newShareUrl)
+
+      // Mark baseline as saved after initial create
+      lastSavedCodeRef.current = codeRef.current
+      setAutoSaveStatus('saved')
       
       console.log('Auto-saved component:', savedComponent.id)
     } catch (error) {
@@ -664,6 +683,68 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
     }, 150)
   }
 
+  // Autosave: debounced, coalesced, idempotent, with retry backoff
+  const runAutoSave = async () => {
+    if (!componentId) return
+    // Skip if nothing changed
+    if (codeRef.current === lastSavedCodeRef.current) return
+
+    if (inFlightRef.current) {
+      // Queue one more run with latest code
+      pendingAfterFlightRef.current = true
+      return
+    }
+
+    inFlightRef.current = true
+    setAutoSaveStatus('saving')
+
+    try {
+      const savingCode = codeRef.current
+      await visualComponentsApi.update(componentId, {
+        name: componentName || `Component_${Date.now()}`,
+        jsxCode: savingCode,
+      })
+      // Only mark the code we actually sent as saved. If code changed during flight,
+      // a pending rerun will persist the latest changes next.
+      lastSavedCodeRef.current = savingCode
+      backoffMsRef.current = AUTO_SAVE_BACKOFF_BASE_MS
+      setAutoSaveStatus('saved')
+    } catch (err) {
+      // Schedule retry with exponential backoff
+      setAutoSaveStatus('retrying')
+      const delay = Math.min(backoffMsRef.current, AUTO_SAVE_BACKOFF_MAX_MS)
+      backoffMsRef.current = Math.min(backoffMsRef.current * 2, AUTO_SAVE_BACKOFF_MAX_MS)
+      inFlightRef.current = false
+      window.setTimeout(() => {
+        runAutoSave()
+      }, delay)
+      return
+    }
+
+    inFlightRef.current = false
+
+    if (pendingAfterFlightRef.current) {
+      pendingAfterFlightRef.current = false
+      // Run again immediately (no debounce) to persist latest edit
+      runAutoSave()
+    }
+  }
+
+  // Schedule autosave when code changes and we have an id
+  useEffect(() => {
+    if (!componentId) return
+    if (code === lastSavedCodeRef.current) return
+
+    if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      runAutoSave()
+    }, AUTO_SAVE_DEBOUNCE_MS)
+
+    return () => {
+      if (autoSaveTimerRef.current) window.clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [code, componentId])
+
   const handlePropertyChange = (property: string, rawValue: string) => {
     if (!selectedElement) return
     let value = rawValue
@@ -754,6 +835,15 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
                 <Save className="w-4 h-4 mr-2" />
                 {isSaving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save'}
               </button>
+              {/* Autosave status chip */}
+              {componentId && (
+                <span className="text-xs text-gray-500" data-testid="autosave-status">
+                  {autoSaveStatus === 'saving' && 'Saving…'}
+                  {autoSaveStatus === 'saved' && 'All changes saved'}
+                  {autoSaveStatus === 'retrying' && 'Retrying…'}
+                  {autoSaveStatus === 'idle' && ''}
+                </span>
+              )}
               <button
                 onClick={() => setCode(veidizeCode(code))}
                 className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"

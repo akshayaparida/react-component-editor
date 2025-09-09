@@ -34,7 +34,6 @@ export function ComponentCard({ component, viewMode, view, showActions = true }:
         queryClient.invalidateQueries({ queryKey: ['components'] })
         queryClient.invalidateQueries({ queryKey: ['my-components'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-        queryClient.invalidateQueries({ queryKey: ['marketplace'] })
         queryClient.invalidateQueries({ queryKey: ['categories'] })
       }, 100) // Small delay to ensure smooth UI transition
     },

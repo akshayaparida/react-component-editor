@@ -153,3 +153,24 @@ model ComponentFavorite {
   @@unique([userId, componentId])
   @@map("component_favorites")
 }
+
+// Standalone Visual Editor Components (no authentication required)
+model VisualComponent {
+  id          String   @id @default(cuid())
+  name        String?  // Optional name for the component
+  jsxCode     String   // The React component JSX code
+  description String?  // Optional description
+  
+  // Metadata
+  framework   String   @default("react")
+  language    String   @default("javascript")
+  
+  // Statistics
+  viewCount   Int      @default(0)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("visual_components")
+}
