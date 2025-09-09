@@ -58,6 +58,12 @@ export function AppHeader({ title = 'Component Dashboard', children }: AppHeader
               <Home className="w-5 h-5 mr-2" />
               <span className="font-medium">Dashboard</span>
             </Link>
+            <Link 
+              to="/library" 
+              className="ml-4 text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-2 py-1 text-sm"
+            >
+              My Components
+            </Link>
             <div className="border-l border-gray-300 pl-4">
               <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
             </div>

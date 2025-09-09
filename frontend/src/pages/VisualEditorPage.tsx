@@ -122,6 +122,16 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
   }, [code, testMode])
 
   // Load component by ID
+  const redirectToLogin = () => {
+    const from = encodeURIComponent(window.location.pathname + window.location.search)
+    window.location.href = `/login?from=${from}`
+  }
+
+  const isAuthError = (err: any) => {
+    const status = err?.response?.status
+    return status === 401 || status === 403
+  }
+
   const loadComponent = async (id: string) => {
     try {
       setIsLoading(true)
@@ -136,8 +146,12 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       setAutoSaveStatus('saved')
       
       console.log('Loaded component:', component.name)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load component:', error)
+      if (isAuthError(error)) {
+        redirectToLogin()
+        return
+      }
       alert('Failed to load component. It may not exist or may have been deleted.')
     } finally {
       setIsLoading(false)
@@ -167,8 +181,11 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       setAutoSaveStatus('saved')
       
       console.log('Auto-saved component:', savedComponent.id)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to auto-save component:', error)
+      if (isAuthError(error)) {
+        redirectToLogin()
+      }
     }
   }
 
@@ -191,9 +208,13 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       setTimeout(() => setSaveSuccess(false), 2000)
       
       console.log('Saved component:', componentId)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save component:', error)
-      alert('Failed to save component. Please try again.')
+      if (isAuthError(error)) {
+        redirectToLogin()
+      } else {
+        alert('Failed to save component. Please try again.')
+      }
     } finally {
       setIsSaving(false)
     }
@@ -709,7 +730,11 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
       lastSavedCodeRef.current = savingCode
       backoffMsRef.current = AUTO_SAVE_BACKOFF_BASE_MS
       setAutoSaveStatus('saved')
-    } catch (err) {
+    } catch (err: any) {
+      if (isAuthError(err)) {
+        redirectToLogin()
+        return
+      }
       // Schedule retry with exponential backoff
       setAutoSaveStatus('retrying')
       const delay = Math.min(backoffMsRef.current, AUTO_SAVE_BACKOFF_MAX_MS)
