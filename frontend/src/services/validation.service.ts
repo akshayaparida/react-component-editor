@@ -117,12 +117,21 @@ export class ValidationService {
       }
     }
 
+    // Pre-normalize numeric size values before schema validation (e.g., '20' -> '20px')
+    const sizeProps = new Set([
+      'fontSize', 'padding', 'margin', 'borderRadius', 'width', 'height'
+    ])
+    let valueForValidation = value
+    if (sizeProps.has(property) && /^\d+(?:\.\d+)?$/.test(value)) {
+      valueForValidation = `${value}px`
+    }
+
     try {
-      const sanitizedValue = validator.parse(value)
+      const parsed = validator.parse(valueForValidation)
       return {
         isValid: true,
         errors: [],
-        sanitizedValue: this.sanitizeValue(property, sanitizedValue)
+        sanitizedValue: this.sanitizeValue(property, parsed)
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -150,8 +159,8 @@ export class ValidationService {
    */
   private static validateElementEditability(elementPath: string): ValidationResult {
     try {
-      // Extract element tag from path
-      const tagMatch = elementPath.match(/^([a-zA-Z]+)/);
+      // Extract element tag from path (support tags like h1, h2, etc.)
+      const tagMatch = elementPath.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
       if (!tagMatch) {
         return {
           isValid: false,
