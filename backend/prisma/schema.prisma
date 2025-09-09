@@ -21,9 +21,10 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  components       Component[]
+  components        Component[]
   componentVersions ComponentVersion[]
-  favorites        ComponentFavorite[]
+  favorites         ComponentFavorite[]
+  visualComponents  VisualComponent[]
 
   @@map("users")
 }
@@ -154,16 +155,21 @@ model ComponentFavorite {
   @@map("component_favorites")
 }
 
-// Standalone Visual Editor Components (no authentication required)
+// Standalone Visual Editor Components (now per-user ownership)
 model VisualComponent {
   id          String   @id @default(cuid())
-  name        String?  // Optional name for the component
-  jsxCode     String   // The React component JSX code
-  description String?  // Optional description
+  name        String?
+  jsxCode     String
+  description String?
   
   // Metadata
   framework   String   @default("react")
   language    String   @default("javascript")
+  isPublic    Boolean  @default(false)
+  
+  // Ownership
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   
   // Statistics
   viewCount   Int      @default(0)
@@ -172,5 +178,6 @@ model VisualComponent {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  @@index([ownerId, updatedAt])
   @@map("visual_components")
 }

@@ -35,15 +35,15 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     // Auto-generate name if not provided
     const name = validatedData.name || `Component_${Date.now()}`;
 
-    // Create the component with ownerId
-    const component = await (prisma as any).visualComponent.create({
+    // Create the component and connect owner relation
+    const component = await prisma.visualComponent.create({
       data: {
         name,
         jsxCode: validatedData.jsxCode,
-        description: validatedData.description,
+        description: validatedData.description ?? null,
         framework: validatedData.framework,
         language: validatedData.language,
-        ownerId: (req as any).user.id,
+        ownerId: (req as any).user.id as string,
       },
     });
 
@@ -80,12 +80,12 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
 // GET /api/v1/visual-components/:id - Get a visual component by ID (auth + ownership required)
 router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id: string = req.params.id as string;
 
     console.log('[Visual Components] Fetching component:', id);
 
     // Find the component
-    const component = await (prisma as any).visualComponent.findUnique({
+    const component = await prisma.visualComponent.findUnique({
       where: { id },
     });
 
@@ -109,7 +109,7 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
     }
 
     // Increment view count and return updated doc (handle mock env without Prisma increment)
-    const updatedComponent = await (prisma as any).visualComponent.update({
+    const updatedComponent = await prisma.visualComponent.update({
       where: { id },
       data: { viewCount: (component.viewCount || 0) + 1 },
     });
@@ -141,7 +141,7 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
 // PUT /api/v1/visual-components/:id - Update a visual component (auth + ownership required)
 router.put('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id: string = req.params.id as string;
     
     console.log('[Visual Components] Updating component:', id, {
       bodySize: JSON.stringify(req.body).length
@@ -151,7 +151,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     const validatedData = updateVisualComponentSchema.parse(req.body);
 
     // Check if component exists
-    const existingComponent = await (prisma as any).visualComponent.findUnique({
+    const existingComponent = await prisma.visualComponent.findUnique({
       where: { id },
     });
 
@@ -174,13 +174,16 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       });
     }
 
+    // Construct update data without undefined properties
+    const updateData: any = { updatedAt: new Date() }
+    if (validatedData.name !== undefined) updateData.name = validatedData.name
+    if (validatedData.description !== undefined) updateData.description = validatedData.description
+    if (validatedData.jsxCode !== undefined) updateData.jsxCode = validatedData.jsxCode
+
     // Update the component
-    const updatedComponent = await (prisma as any).visualComponent.update({
+    const updatedComponent = await prisma.visualComponent.update({
       where: { id },
-      data: {
-        ...validatedData,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     console.log('[Visual Components] Updated component:', updatedComponent.id);
@@ -227,7 +230,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       ];
     }
 
-    const components = await (prisma as any).visualComponent.findMany({
+    const components = await prisma.visualComponent.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
       take: limit,
@@ -272,7 +275,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     console.log('[Visual Components] Deleting component:', id);
 
     // Check if component exists
-    const existingComponent = await (prisma as any).visualComponent.findUnique({
+    const existingComponent = await prisma.visualComponent.findUnique({
       where: { id },
     });
 
@@ -286,7 +289,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
 
     // Delete the component
-    await (prisma as any).visualComponent.delete({
+    await prisma.visualComponent.delete({
       where: { id },
     });
 
