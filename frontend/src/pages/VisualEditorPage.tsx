@@ -124,7 +124,8 @@ export function VisualEditorPage({ testMode = false }: { testMode?: boolean } = 
   // Load component by ID
   const redirectToLogin = () => {
     const from = encodeURIComponent(window.location.pathname + window.location.search)
-    window.location.href = `/login?from=${from}`
+    const abs = new URL(`/login?from=${from}`, window.location.origin)
+    window.location.href = abs.toString()
   }
 
   const isAuthError = (err: any) => {

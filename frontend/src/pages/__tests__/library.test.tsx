@@ -70,5 +70,24 @@ describe('LibraryPage (My Components) – TDD', () => {
     // Expect filtered result to appear
     expect(await screen.findByText('Invoice')).toBeInTheDocument()
   })
+
+  it('redirects to /login on 401 from API', async () => {
+    // Arrange initial location to /library for from= param
+    const originalHref = window.location.href
+    // @ts-ignore
+    delete (window as any).location
+    ;(window as any).location = new URL('http://localhost/library')
+
+    listMock.mockRejectedValueOnce({ response: { status: 401 } })
+
+    render(<LibraryPage />)
+
+    await waitFor(() => {
+      expect(window.location.href).toMatch(/\/login\?from=/)
+    })
+
+    // cleanup restore
+    ;(window as any).location = new URL(originalHref)
+  })
 })
 

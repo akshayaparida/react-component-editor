@@ -21,10 +21,20 @@ function LibraryPageInner() {
     let cancelled = false
     const run = async () => {
       setIsLoading(true)
-      const res = await (visualComponentsApi as any).list({ limit: 50, search })
-      if (!cancelled) {
-        setItems(res || [])
-        setIsLoading(false)
+      try {
+        const res = await (visualComponentsApi as any).list({ limit: 50, search })
+        if (!cancelled) {
+          setItems(res || [])
+          setIsLoading(false)
+        }
+      } catch (err: any) {
+        const status = err?.response?.status
+        if (status === 401 || status === 403) {
+          const from = encodeURIComponent('/library')
+          const abs = new URL(`/login?from=${from}`, window.location.origin)
+          window.location.href = abs.toString()
+        }
+        if (!cancelled) setIsLoading(false)
       }
     }
     run()
