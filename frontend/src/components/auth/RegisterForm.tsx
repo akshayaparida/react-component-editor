@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,8 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || '/';
 
   const {
     register,
@@ -56,7 +58,7 @@ export function RegisterForm() {
     try {
       const { confirmPassword, agreeToTerms, ...registerData } = data;
       await registerUser(registerData);
-      navigate('/', { replace: true });
+      navigate(from, { replace: true });
     } catch (error) {
       // Error handling is done in AuthContext
       console.error('Register error:', error);
