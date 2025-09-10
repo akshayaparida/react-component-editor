@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (frontend)
+        run: pnpm --filter frontend run lint
+        continue-on-error: true
+
+      - name: Lint (backend) (if configured)
+        if: ${{ hashFiles('backend/**/.eslintrc*', 'backend/eslint.config.*') != '' }}
+        run: pnpm --filter react-component-editor-backend run lint
+        continue-on-error: true
+
+      - name: Typecheck (workspace)
+        run: pnpm -r --if-present run typecheck
+
+      - name: Tests (frontend)
+        run: pnpm --filter frontend run test
+
+      - name: Tests (backend)
+        run: pnpm --filter react-component-editor-backend run test
+        continue-on-error: true
+
