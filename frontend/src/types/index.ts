@@ -42,6 +42,8 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   name?: string;
+  // Optional bot verification token (Cloudflare Turnstile)
+  turnstileToken?: string;
 }
 
 export interface AuthResponse {

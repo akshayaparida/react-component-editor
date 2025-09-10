@@ -38,12 +38,13 @@ vi.mock('@/contexts/AuthContext', () => {
 
   function AuthProvider({ children }: { children: React.ReactNode }) {
     const [authed, setAuthed] = React.useState(false)
+    ;(globalThis as any).__registerSpy = (globalThis as any).__registerSpy || vi.fn(async (_: any) => { setAuthed(true) })
     const value: Ctx = {
       isAuthenticated: authed,
       isLoading: false,
       user: authed ? { id: 'u' } : null,
       login: async () => { setAuthed(true) },
-      register: async () => { setAuthed(true) },
+      register: async (payload?: any) => { await (globalThis as any).__registerSpy(payload) },
       logout: async () => { setAuthed(false) },
       refetchUser: () => {},
     }
@@ -117,6 +118,12 @@ describe('RegisterPage – routes and redirect (TDD)', () => {
     fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: 'Password1!' } })
     fireEvent.click(screen.getByLabelText(/I agree/i))
 
+    // Provide bot token for successful flow
+    const tokenInput1 = screen.queryByTestId('turnstile-token') as HTMLInputElement | null
+    if (tokenInput1) {
+      fireEvent.change(tokenInput1, { target: { value: 'ok-token' } })
+    }
+
     // Submit
     fireEvent.click(screen.getByRole('button', { name: /Create account/i }))
 
@@ -142,6 +149,12 @@ describe('RegisterPage – routes and redirect (TDD)', () => {
     fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: 'Password1!' } })
     fireEvent.click(screen.getByLabelText(/I agree/i))
 
+    // Provide bot token for successful flow
+    const tokenInput2 = screen.queryByTestId('turnstile-token') as HTMLInputElement | null
+    if (tokenInput2) {
+      fireEvent.change(tokenInput2, { target: { value: 'ok-token-2' } })
+    }
+
     // Submit
     fireEvent.click(screen.getByRole('button', { name: /Create account/i }))
 
@@ -154,5 +167,55 @@ describe('RegisterPage – routes and redirect (TDD)', () => {
     const callArgs = nav.mock.calls.find((c: any[]) => c[0] === '/library')
     expect(callArgs).toBeTruthy()
     expect(callArgs[1]).toMatchObject({ replace: true })
+  })
+
+  it('blocks submission without bot verification and shows a validation message', async () => {
+    // Ensure spy exists and reset
+    const rspy = (globalThis as any).__registerSpy
+    if (rspy) rspy.mockReset()
+
+    renderApp(['/register'])
+
+    // Fill required fields except bot token
+    fireEvent.change(await screen.findByLabelText(/Username/i), { target: { value: 'tester' } })
+    fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: 't@example.com' } })
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'Password1!' } })
+    fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: 'Password1!' } })
+    fireEvent.click(screen.getByLabelText(/I agree/i))
+
+    fireEvent.click(screen.getByRole('button', { name: /Create account/i }))
+
+    // Expect validation message and no register call
+    expect(await screen.findByText(/Please complete bot verification/i)).toBeInTheDocument()
+    expect((globalThis as any).__registerSpy).not.toHaveBeenCalled()
+  })
+
+  it('includes turnstileToken in register payload when present', async () => {
+    const rspy = (globalThis as any).__registerSpy
+    if (rspy) rspy.mockReset()
+
+    renderApp(['/register'])
+
+    // Fill the form
+    fireEvent.change(await screen.findByLabelText(/Username/i), { target: { value: 'tester' } })
+    fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: 't@example.com' } })
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'Password1!' } })
+    fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: 'Password1!' } })
+    fireEvent.click(screen.getByLabelText(/I agree/i))
+
+    // Set token via hidden test seam
+    const tokenInput = screen.queryByTestId('turnstile-token') as HTMLInputElement | null
+    if (tokenInput) {
+      fireEvent.change(tokenInput, { target: { value: 'test-token-123' } })
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: /Create account/i }))
+
+    await waitFor(() => {
+      expect((globalThis as any).__registerSpy).toHaveBeenCalled()
+    })
+    const call = (globalThis as any).__registerSpy.mock.calls[0][0]
+    expect(call).toHaveProperty('turnstileToken')
+    expect(call.turnstileToken).toBe('test-token-123')
   })
 })

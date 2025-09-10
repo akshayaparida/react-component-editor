@@ -27,6 +27,8 @@ const registerSchema = z
     agreeToTerms: z.boolean().refine(val => val === true, {
       message: 'You must agree to the terms and conditions',
     }),
+    // Turnstile token required to submit (bot protection)
+    turnstileToken: z.string().min(1, 'Please complete bot verification'),
   })
   .refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -57,8 +59,11 @@ export function RegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
+    setValue,
+    setError,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: { turnstileToken: '' },
   });
 
   const password = watch('password');
@@ -66,7 +71,12 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       const { confirmPassword, agreeToTerms, ...registerData } = data;
-      await registerUser(registerData);
+      // Guard: ensure bot verification token exists (defensive in addition to zod)
+      if (!registerData.turnstileToken || registerData.turnstileToken.trim() === '') {
+        setError('turnstileToken', { type: 'manual', message: 'Please complete bot verification' })
+        return
+      }
+      await registerUser(registerData as any);
       navigate(from, { replace: true });
     } catch (error) {
       // Error handling is done in AuthContext
@@ -266,6 +276,19 @@ export function RegisterForm() {
         </div>
         {errors.agreeToTerms && (
           <p className="text-sm text-red-600">{errors.agreeToTerms.message}</p>
+        )}
+
+        {/* Hidden Turnstile token input (test seam) */}
+        <input
+          data-testid="turnstile-token"
+          type="text"
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+          aria-hidden="true"
+          {...register('turnstileToken')}
+          onChange={(e) => setValue('turnstileToken', (e.target as HTMLInputElement).value)}
+        />
+        {errors.turnstileToken && (
+          <p className="text-sm text-red-600">{errors.turnstileToken.message as string}</p>
         )}
 
         <button
