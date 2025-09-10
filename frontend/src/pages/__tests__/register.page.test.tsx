@@ -130,4 +130,29 @@ describe('RegisterPage – routes and redirect (TDD)', () => {
     expect(callArgs).toBeTruthy()
     expect(callArgs[1]).toMatchObject({ replace: true })
   })
+
+  it('redirects using ?from path when no location.state is present', async () => {
+    // Start at /register?from=/library
+    renderApp(['/register?from=/library'])
+
+    // Fill the form
+    fireEvent.change(await screen.findByLabelText(/Username/i), { target: { value: 'tester' } })
+    fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: 't@example.com' } })
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'Password1!' } })
+    fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: 'Password1!' } })
+    fireEvent.click(screen.getByLabelText(/I agree/i))
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: /Create account/i }))
+
+    // Expect navigate('/library', { replace: true })
+    await waitFor(() => {
+      const nav = (globalThis as any).__navigateSpy
+      expect(nav).toHaveBeenCalled()
+    })
+    const nav = (globalThis as any).__navigateSpy
+    const callArgs = nav.mock.calls.find((c: any[]) => c[0] === '/library')
+    expect(callArgs).toBeTruthy()
+    expect(callArgs[1]).toMatchObject({ replace: true })
+  })
 })

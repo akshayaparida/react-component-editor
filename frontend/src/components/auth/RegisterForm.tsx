@@ -41,7 +41,16 @@ export function RegisterForm() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/';
+  // Determine safe redirect target: prefer state.from.pathname, fallback to ?from query, else '/'
+  const getSafeFrom = () => {
+    const stateFrom = (location.state as any)?.from?.pathname as string | undefined
+    if (stateFrom && typeof stateFrom === 'string' && stateFrom.startsWith('/')) return stateFrom
+    const sp = new URLSearchParams(location.search)
+    const qpFrom = sp.get('from') || undefined
+    if (qpFrom && qpFrom.startsWith('/')) return qpFrom
+    return '/'
+  }
+  const from = getSafeFrom();
 
   const {
     register,
