@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        run: pnpm -r --if-present prisma generate
+      - name: Generate Prisma Client (backend)
+        run: pnpm --filter react-component-editor-backend exec prisma generate
 
       - name: Lint (frontend)
         run: pnpm --filter frontend run lint
