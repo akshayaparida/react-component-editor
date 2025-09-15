@@ -1,1 +1,8 @@
 node_modules
+
+# Ignore environment files everywhere
+**/.env
+**/.env.*
+
+# Keep examples tracked
+!**/.env.example

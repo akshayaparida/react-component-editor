@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
+import { requireAuth } from '../middleware/auth'
 
 const router: Router = Router()
 const prisma = new PrismaClient()
@@ -19,7 +20,7 @@ const updateSchema = z.object({
 })
 
 // POST /api/v1/component - Create a new component (alias)
-router.post('/component', async (req: Request, res: Response) => {
+router.post('/component', requireAuth, async (req: Request, res: Response) => {
   try {
     const data = createSchema.parse(req.body)
     const name = data.name || `Component_${Date.now()}`
@@ -31,6 +32,7 @@ router.post('/component', async (req: Request, res: Response) => {
         description: data.description ?? null,
         framework: 'react',
         language: 'javascript',
+        owner: { connect: { id: (req as any).user.id } },
       },
     })
 

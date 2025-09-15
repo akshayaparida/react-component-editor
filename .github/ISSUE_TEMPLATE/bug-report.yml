@@ -1,0 +1,151 @@
+name: Bug Report
+description: Report a bug to help us improve the project
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug! Please fill out the sections below to help us identify and fix the issue.
+        
+  - type: input
+    id: title
+    attributes:
+      label: Bug Title
+      description: Provide a clear and concise title for the bug
+      placeholder: "e.g., Component fails to render when props are undefined"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is
+      placeholder: |
+        When I try to do X, Y happens instead of Z.
+        The component shows an error message...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+        
+        Add screenshots or videos if applicable
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: The component should render correctly with the provided props
+    validations:
+      required: true
+      
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: The component throws an error and displays a blank screen
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical (app crashes, data loss)
+        - High (major feature broken)
+        - Medium (feature partially broken)
+        - Low (minor issue, cosmetic)
+    validations:
+      required: true
+      
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of the project are you running?
+      placeholder: "e.g., 1.0.0 or commit SHA"
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: What browser are you using?
+      multiple: true
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Other
+    validations:
+      required: false
+      
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you using?
+      placeholder: "e.g., Ubuntu 22.04, macOS 14.0, Windows 11"
+    validations:
+      required: false
+      
+  - type: input
+    id: node_version
+    attributes:
+      label: Node Version
+      description: What version of Node.js are you using?
+      placeholder: "e.g., 20.11.0"
+    validations:
+      required: false
+      
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs/Error Output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: |
+        - This started happening after upgrading to version X
+        - Only occurs in production environment
+        - Related to issue #123
+    validations:
+      required: false
+      
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      description: Please confirm the following
+      options:
+        - label: I have searched for similar issues before creating this one
+          required: true
+        - label: I have tested with the latest version
+          required: false
+        - label: I am willing to provide more information if needed
+          required: false

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import {
   CreateComponentSchema,
   UpdateComponentSchema,
@@ -723,10 +723,19 @@ router.post(
           isLatest: true,
           jsxCode: latestVersion.jsxCode,
           cssCode: latestVersion.cssCode,
-          propsSchema: latestVersion.propsSchema,
+          propsSchema:
+            latestVersion.propsSchema === null
+              ? Prisma.JsonNull
+              : (latestVersion.propsSchema as unknown as Prisma.InputJsonValue),
           previewCode: latestVersion.previewCode,
-          previewData: latestVersion.previewData,
-          dependencies: latestVersion.dependencies,
+          previewData:
+            latestVersion.previewData === null
+              ? Prisma.JsonNull
+              : (latestVersion.previewData as unknown as Prisma.InputJsonValue),
+          dependencies:
+            latestVersion.dependencies === null
+              ? Prisma.JsonNull
+              : (latestVersion.dependencies as unknown as Prisma.InputJsonValue),
         },
       });
 
