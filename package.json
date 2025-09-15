@@ -16,10 +16,23 @@
     "install:all": "pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install",
     "build": "cd backend && pnpm run build && cd ../frontend && pnpm run build",
     "start": "concurrently \"cd backend && pnpm run start\" \"cd frontend && pnpm run preview\"",
-    "clean": "rm -rf frontend/dist frontend/node_modules backend/dist backend/node_modules node_modules"
+    "clean": "rm -rf frontend/dist frontend/node_modules backend/dist backend/node_modules node_modules",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "bash -lc \"command -v eslint >/dev/null 2>&1 && eslint --fix || echo '[info] eslint not found, skipping'\"",
+      "git add"
+    ],
+    "*.{md,json}": [
+      "bash -lc \"command -v prettier >/dev/null 2>&1 && prettier --write || echo '[info] prettier not found, skipping'\"",
+      "git add"
+    ]
   },
   "engines": {
     "node": ">=18.0.0",
