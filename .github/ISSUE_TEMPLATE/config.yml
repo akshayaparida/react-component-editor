@@ -1,6 +1,12 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions/Support
-    url: https://github.com/OWNER/REPO/discussions
-    about: Please ask and answer questions here.
+  - name: Questions & Discussions
+    url: https://github.com/akshayaparida/react-component-editor/discussions
+    about: Ask questions and share ideas with the community
+  - name: Documentation
+    url: https://github.com/akshayaparida/react-component-editor/wiki
+    about: Check our documentation for guides and API references
+  - name: Security Issues
+    url: https://github.com/akshayaparida/react-component-editor/security/policy
+    about: Please report security vulnerabilities privately
 

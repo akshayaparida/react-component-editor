@@ -1,0 +1,129 @@
+name: Enhancement
+description: Suggest improvements or refinements to existing features
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an enhancement! Please provide details on how this improvement will benefit the project.
+        
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: Current Behavior
+      description: Describe the current functionality that you want to improve
+      placeholder: |
+        Currently, the component does X by doing Y.
+        It requires multiple steps to achieve Z.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: proposed_enhancement
+    attributes:
+      label: Proposed Enhancement
+      description: Describe your proposed improvement in detail
+      placeholder: |
+        The component could be improved by adding automatic Y detection.
+        This would reduce the steps needed from 3 to 1.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why Should This Be Implemented?
+      description: Explain the benefits and use cases for this enhancement
+      placeholder: |
+        This enhancement would:
+        - Improve user experience by reducing clicks
+        - Decrease load time by 30%
+        - Make the code more maintainable
+    validations:
+      required: true
+      
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions Considered
+      description: Have you considered any alternative approaches?
+      placeholder: |
+        Alternative 1: We could implement X instead, but it would require...
+        Alternative 2: Using library Y, but it adds dependencies...
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this enhancement?
+      options:
+        - High (blocks major workflow)
+        - Medium (improves efficiency)
+        - Low (nice to have)
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: breaking_change
+    attributes:
+      label: Breaking Change
+      description: Would this enhancement introduce breaking changes?
+      options:
+        - "No"
+        - "Yes - minor (requires small code updates)"
+        - "Yes - major (requires significant refactoring)"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: implementation_details
+    attributes:
+      label: Implementation Details (Optional)
+      description: If you have ideas on how to implement this, please share
+      placeholder: |
+        - Modify the handleClick function to include...
+        - Add a new configuration option for...
+        - Update the database schema to support...
+      render: markdown
+    validations:
+      required: false
+      
+  - type: textarea
+    id: testing_approach
+    attributes:
+      label: Testing Approach
+      description: How should this enhancement be tested?
+      placeholder: |
+        - Unit tests for the new functionality
+        - Integration tests with existing features
+        - Performance benchmarks before/after
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or examples
+      placeholder: |
+        - Similar implementation in project X
+        - Research links or documentation
+        - Performance metrics
+    validations:
+      required: false
+      
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      description: Please confirm the following
+      options:
+        - label: I have searched for similar enhancement requests
+          required: true
+        - label: This enhancement aligns with the project's goals
+          required: false
+        - label: I am willing to help implement this enhancement
+          required: false

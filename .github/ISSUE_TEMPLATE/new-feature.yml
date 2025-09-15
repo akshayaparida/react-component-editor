@@ -1,0 +1,178 @@
+name: New Feature
+description: Propose a new feature for the project
+labels: ["feature-request", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a new feature! Please fill out the sections below to help us understand your request.
+        
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Feature Description
+      description: Provide a clear and detailed description of the feature you're proposing
+      placeholder: |
+        I would like to have a new component that allows users to...
+        This feature would enable the application to...
+    validations:
+      required: true
+      
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem It Solves
+      description: What problem does this feature solve? What use case does it address?
+      placeholder: |
+        Currently, users have to manually do X which is time-consuming.
+        This feature would automate the process and save 10 minutes per task.
+    validations:
+      required: true
+      
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User Story
+      description: Describe the feature from a user's perspective
+      placeholder: |
+        As a [type of user],
+        I want [some goal],
+        So that [some reason/benefit]
+    validations:
+      required: false
+      
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What are the requirements for this feature to be considered complete?
+      placeholder: |
+        - [ ] User can click on the button to trigger the action
+        - [ ] System validates input before processing
+        - [ ] Success/error messages are displayed appropriately
+        - [ ] Feature works on all supported browsers
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: feature_type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - UI/UX Component
+        - API Endpoint
+        - Database Feature
+        - Performance Improvement
+        - Developer Tool
+        - Documentation
+        - Other
+    validations:
+      required: true
+      
+  - type: textarea
+    id: proposed_implementation
+    attributes:
+      label: Proposed Implementation Approach
+      description: If you have ideas on how to implement this, please share (optional)
+      placeholder: |
+        Technical approach:
+        1. Create a new React component in components/
+        2. Add API endpoint in backend/routes/
+        3. Update database schema to include...
+        
+        Technologies/libraries to use:
+        - React hooks for state management
+        - PostgreSQL for data storage
+      render: markdown
+    validations:
+      required: false
+      
+  - type: textarea
+    id: design_mockups
+    attributes:
+      label: Design/Mockups
+      description: Add any wireframes, mockups, or design references
+      placeholder: |
+        - Link to Figma design: [URL]
+        - Screenshot of similar feature: [attach image]
+        - ASCII diagram of workflow
+    validations:
+      required: false
+      
+  - type: dropdown
+    id: impact_assessment
+    attributes:
+      label: Impact Assessment
+      description: What's the scope of this feature?
+      options:
+        - Small (1-2 days of work)
+        - Medium (3-5 days of work)
+        - Large (1-2 weeks of work)
+        - Extra Large (more than 2 weeks)
+    validations:
+      required: false
+      
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Does this feature depend on other work or external factors?
+      placeholder: |
+        - Requires completion of issue #123
+        - Needs new AWS service to be configured
+        - Depends on third-party API availability
+    validations:
+      required: false
+      
+  - type: textarea
+    id: testing_strategy
+    attributes:
+      label: Testing Strategy
+      description: How should this feature be tested? (Following TDD approach)
+      placeholder: |
+        - Unit tests for business logic
+        - Integration tests for API endpoints
+        - E2E tests for user workflows
+        - Performance tests if applicable
+    validations:
+      required: false
+      
+  - type: textarea
+    id: risks_considerations
+    attributes:
+      label: Risks and Considerations
+      description: Any potential risks or things to consider?
+      placeholder: |
+        - May increase database load by X%
+        - Requires migration of existing data
+        - Could affect existing feature Y
+        - Security implications to review
+    validations:
+      required: false
+      
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context, references, or information
+      placeholder: |
+        - Similar features in competitor products
+        - Research or documentation links
+        - Customer feedback or requests
+    validations:
+      required: false
+      
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      description: Please confirm the following
+      options:
+        - label: I have searched for similar feature requests
+          required: true
+        - label: This feature aligns with the project roadmap
+          required: false
+        - label: I am willing to help implement or test this feature
+          required: false
